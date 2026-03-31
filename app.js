@@ -151,17 +151,56 @@ function rgbToHsl(r, g, b) {
 function classifyPixel(r, g, b) {
   const [h, s, l] = rgbToHsl(r, g, b);
 
-  // Scalp/skin: warm hue (red-yellow-orange), moderate saturation & lightness
-  // Works for a wide range of skin tones
-  const warmHue = (h <= 55) || (h >= 340); // red wraps around 360
-  if (warmHue && s >= 8 && s <= 85 && l >= 18 && l <= 88) return 1;
+  // Scalp/skin: warm-to-neutral hue, moderate lightness.
+  // Broadened to h<=70 to handle warm/teal environment lighting casts.
+  const warmHue = (h <= 70) || (h >= 320);
+  if (warmHue && s >= 5 && s <= 88 && l >= 16 && l <= 90) return 1;
 
-  // Hair: dark pixel that is NOT a saturated cool colour (blue/green/teal/purple)
-  // This excludes clothing and coloured backgrounds
-  const isCoolColoured = (h > 60 && h < 310) && s > 14;
-  if (l < 45 && !isCoolColoured) return 2;
+  // Hair: dark, and NOT a saturated cool colour (teal/blue/green/purple clothing)
+  const isCoolColoured = (h > 65 && h < 300) && s > 16;
+  if (l < 44 && !isCoolColoured) return 2;
 
   return 0; // background / clothing — ignored
+}
+
+// Separable box-filter dilation: expands skin (cls=1) region by `radius` pixels.
+// Any hair pixel (cls=2) that falls outside the dilated skin zone is reclassified
+// as background (0), removing dark-background blobs isolated from the scalp.
+function removeSkinDistantHair(cls, width, height, radius) {
+  const n = width * height;
+
+  // Build binary skin mask
+  const skin = new Uint8Array(n);
+  for (let i = 0; i < n; i++) skin[i] = cls[i] === 1 ? 1 : 0;
+
+  // Horizontal pass
+  const hBlur = new Uint8Array(n);
+  for (let y = 0; y < height; y++) {
+    let sum = 0;
+    for (let x = 0; x < Math.min(radius, width); x++) sum += skin[y * width + x];
+    for (let x = 0; x < width; x++) {
+      if (x + radius < width)     sum += skin[y * width + x + radius];
+      if (x - radius - 1 >= 0)    sum -= skin[y * width + x - radius - 1];
+      hBlur[y * width + x] = sum > 0 ? 1 : 0;
+    }
+  }
+
+  // Vertical pass
+  const nearSkin = new Uint8Array(n);
+  for (let x = 0; x < width; x++) {
+    let sum = 0;
+    for (let y = 0; y < Math.min(radius, height); y++) sum += hBlur[y * width + x];
+    for (let y = 0; y < height; y++) {
+      if (y + radius < height)    sum += hBlur[(y + radius) * width + x];
+      if (y - radius - 1 >= 0)    sum -= hBlur[(y - radius - 1) * width + x];
+      nearSkin[y * width + x] = sum > 0 ? 1 : 0;
+    }
+  }
+
+  // Strip hair pixels that are not near any skin pixel
+  for (let i = 0; i < n; i++) {
+    if (cls[i] === 2 && !nearSkin[i]) cls[i] = 0;
+  }
 }
 
 function analyseImageData(imageData) {
@@ -177,6 +216,19 @@ function analyseImageData(imageData) {
     cls[i] = c;
     if (c === 1) skinCount++;
     else if (c === 2) hairCount++;
+  }
+
+  // 2. Remove hair pixels that are too far from any skin pixel (background blobs)
+  //    Dilation radius of 25px: hair strands adjacent to scalp survive; isolated
+  //    dark blobs (background, dark clothing edges) are reclassified as other (0).
+  if (skinCount > n * 0.02) {
+    removeSkinDistantHair(cls, width, height, 25);
+    // Recount after filtering
+    skinCount = 0; hairCount = 0;
+    for (let i = 0; i < n; i++) {
+      if (cls[i] === 1) skinCount++;
+      else if (cls[i] === 2) hairCount++;
+    }
   }
 
   const scalpTotal = skinCount + hairCount;
@@ -644,10 +696,15 @@ const App = (() => {
     const octx = oc.getContext('2d');
     const ovD  = octx.createImageData(_w, _h);
     for (let i = 0; i < mask.length; i++) {
-      if (mask[i]) {
-        ovD.data[i*4]=0; ovD.data[i*4+1]=210; ovD.data[i*4+2]=140; ovD.data[i*4+3]=130;
+      if (mask[i] === 2) {
+        // Hair: teal-green
+        ovD.data[i*4]=0;   ovD.data[i*4+1]=210; ovD.data[i*4+2]=120; ovD.data[i*4+3]=140;
+      } else if (mask[i] === 1) {
+        // Scalp: orange
+        ovD.data[i*4]=255; ovD.data[i*4+1]=120; ovD.data[i*4+2]=40;  ovD.data[i*4+3]=100;
       } else {
-        ovD.data[i*4]=250; ovD.data[i*4+1]=120; ovD.data[i*4+2]=50; ovD.data[i*4+3]=55;
+        // Background/excluded: dim dark veil so user can see it's ignored
+        ovD.data[i*4]=0;   ovD.data[i*4+1]=0;   ovD.data[i*4+2]=0;   ovD.data[i*4+3]=140;
       }
     }
     octx.putImageData(ovD, 0, 0);
