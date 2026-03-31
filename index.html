@@ -51,18 +51,34 @@
             <button class="auth-tab"        id="tab-signup" onclick="Auth.showTab('signup')">Sign Up</button>
           </div>
 
-          <div class="auth-error" id="auth-error" style="display:none"></div>
+          <div class="auth-error"   id="auth-error"   style="display:none"></div>
+          <div class="auth-success" id="auth-success" style="display:none"></div>
 
+          <!-- Login / Signup form -->
           <form id="auth-form" onsubmit="Auth.submit(event)">
             <div class="form-group">
               <label for="auth-email">Email</label>
               <input type="email" id="auth-email" required placeholder="you@example.com" autocomplete="email" />
             </div>
             <div class="form-group">
-              <label for="auth-password">Password</label>
+              <div class="password-label-row">
+                <label for="auth-password">Password</label>
+                <a href="#" class="forgot-link" id="forgot-link" onclick="Auth.showForgot();return false;">Forgot password?</a>
+              </div>
               <input type="password" id="auth-password" required placeholder="Min. 6 characters" autocomplete="current-password" />
             </div>
             <button type="submit" class="btn btn-primary btn-full" id="auth-submit">Log In</button>
+          </form>
+
+          <!-- Forgot password form (hidden by default) -->
+          <form id="forgot-form" onsubmit="Auth.sendReset(event)" style="display:none">
+            <p class="forgot-desc">Enter your email address and we&apos;ll send you a link to reset your password.</p>
+            <div class="form-group">
+              <label for="forgot-email">Email</label>
+              <input type="email" id="forgot-email" required placeholder="you@example.com" autocomplete="email" />
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" id="forgot-submit">Send Reset Link</button>
+            <button type="button" class="btn btn-ghost btn-full" onclick="Auth.showTab('login')" style="margin-top:8px">&#8592; Back to Login</button>
           </form>
 
           <p class="auth-switch" id="auth-switch">

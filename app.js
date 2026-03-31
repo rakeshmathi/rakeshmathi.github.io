@@ -19,13 +19,28 @@ const Auth = (() => {
 
   function showTab(tab) {
     _tab = tab;
+    // Restore main form in case forgot-password view was shown
+    $('auth-form').style.display   = 'flex';
+    $('auth-form').style.flexDirection = 'column';
+    $('auth-form').style.gap       = '14px';
+    $('forgot-form').style.display = 'none';
+    $('auth-tabs').style.display   = 'flex';
+    $('auth-switch').style.display = 'block';
+
     $('tab-login') .classList.toggle('active', tab === 'login');
     $('tab-signup').classList.toggle('active', tab === 'signup');
     $('auth-submit').textContent = tab === 'login' ? 'Log In' : 'Create Account';
     $('auth-switch').innerHTML = tab === 'login'
       ? 'Don\'t have an account? <a href="#" onclick="Auth.showTab(\'signup\');return false;">Sign up</a>'
       : 'Already have an account? <a href="#" onclick="Auth.showTab(\'login\');return false;">Log in</a>';
-    $('auth-error').style.display = 'none';
+
+    // Show forgot link only on login tab
+    const fl = $('forgot-link');
+    if (fl) fl.style.display = tab === 'login' ? 'inline' : 'none';
+
+    $('auth-error').style.display   = 'none';
+    $('auth-success').style.display = 'none';
+    $('auth-password').required     = tab !== 'forgot';
   }
 
   async function submit(e) {
@@ -61,11 +76,54 @@ const Auth = (() => {
     }
   }
 
+  function showForgot() {
+    $('auth-form').style.display    = 'none';
+    $('forgot-form').style.display  = 'flex';
+    $('auth-tabs').style.display    = 'none';
+    $('auth-switch').style.display  = 'none';
+    $('auth-error').style.display   = 'none';
+    $('auth-success').style.display = 'none';
+    $('forgot-form').style.flexDirection = 'column';
+    $('forgot-form').style.gap = '14px';
+  }
+
+  async function sendReset(e) {
+    e.preventDefault();
+    const email = $('forgot-email').value.trim();
+    const btn   = $('forgot-submit');
+    btn.disabled    = true;
+    btn.textContent = '…';
+    $('auth-error').style.display = 'none';
+
+    try {
+      await fbAuth.sendPasswordResetEmail(email);
+      $('forgot-form').style.display  = 'none';
+      $('auth-tabs').style.display    = 'flex';
+      $('auth-switch').style.display  = 'block';
+      $('auth-form').style.display    = 'flex';
+      $('auth-form').style.flexDirection = 'column';
+      $('auth-form').style.gap = '14px';
+      const ok = $('auth-success');
+      ok.textContent    = '✓ Reset link sent — check your inbox.';
+      ok.style.display  = 'block';
+    } catch (err) {
+      const msgs = {
+        'auth/user-not-found': 'No account found with this email.',
+        'auth/invalid-email':  'Please enter a valid email address.',
+      };
+      const el = $('auth-error');
+      el.textContent   = msgs[err.code] || 'Could not send reset email. Try again.';
+      el.style.display = 'block';
+      btn.disabled     = false;
+      btn.textContent  = 'Send Reset Link';
+    }
+  }
+
   async function logout() {
     await fbAuth.signOut();
   }
 
-  return { showTab, submit, logout };
+  return { showTab, submit, showForgot, sendReset, logout };
 })();
 
 // ===== FIRESTORE HELPERS =====
