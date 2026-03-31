@@ -277,47 +277,265 @@ const RESULT_BANDS = [
   },
 ];
 
+// ===== IMAGE ANALYSIS =====
+
+/**
+ * Analyse hair density from an ImageData object using:
+ *  1. Hair-coverage ratio  — fraction of pixels identified as hair strands
+ *  2. Texture index        — normalised luminance standard-deviation
+ *  3. Edge density         — average gradient magnitude (strand sharpness)
+ *
+ * Returns a score in [0, 100].
+ */
+function analyseImageData(imageData) {
+  const { data, width, height } = imageData;
+  const n = width * height;
+
+  // --- Build luminance array ---
+  const lum = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const r = data[i * 4];
+    const g = data[i * 4 + 1];
+    const b = data[i * 4 + 2];
+    lum[i] = 0.299 * r + 0.587 * g + 0.114 * b;
+  }
+
+  // --- Mean & standard-deviation ---
+  let sum = 0;
+  for (let i = 0; i < n; i++) sum += lum[i];
+  const mean = sum / n;
+
+  let sumSq = 0;
+  for (let i = 0; i < n; i++) sumSq += (lum[i] - mean) ** 2;
+  const stdDev = Math.sqrt(sumSq / n);
+
+  // --- Adaptive coverage threshold ---
+  // Pixels darker than (mean − 0.4·σ) are classified as hair.
+  const hairThreshold = mean - stdDev * 0.4;
+  let hairCount = 0;
+  for (let i = 0; i < n; i++) {
+    if (lum[i] < hairThreshold) hairCount++;
+  }
+  const coverageRatio = hairCount / n; // 0→1
+
+  // --- Edge density via 2×2 gradient (Sobel-lite) ---
+  let edgeSum = 0;
+  let edgePixels = 0;
+  for (let y = 0; y < height - 1; y++) {
+    for (let x = 0; x < width - 1; x++) {
+      const idx = y * width + x;
+      const gx = lum[idx + 1] - lum[idx];
+      const gy = lum[idx + width] - lum[idx];
+      edgeSum += Math.sqrt(gx * gx + gy * gy);
+      edgePixels++;
+    }
+  }
+  const edgeDensity = edgeSum / edgePixels; // avg gradient magnitude
+
+  // --- Build overlay mask (returned for visualisation) ---
+  const mask = new Uint8Array(n); // 1 = hair, 0 = scalp
+  for (let i = 0; i < n; i++) {
+    mask[i] = lum[i] < hairThreshold ? 1 : 0;
+  }
+
+  // --- Normalise sub-scores to [0, 100] ---
+  // coverage: 0.10 → ~10  /  0.75 → ~95
+  const covScore = clamp((coverageRatio - 0.08) / 0.62 * 100, 5, 95);
+
+  // texture: stdDev 8 → 10  /  60 → 95
+  const texScore = clamp((stdDev - 8) / 52 * 100, 5, 95);
+
+  // edge density: 2 → 10  /  18 → 90
+  const edgeScore = clamp((edgeDensity - 2) / 16 * 100, 5, 95);
+
+  // Weighted blend
+  const photoScore = Math.round(covScore * 0.50 + texScore * 0.30 + edgeScore * 0.20);
+
+  return {
+    score: clamp(photoScore, 5, 95),
+    coveragePct: Math.round(coverageRatio * 100),
+    stdDev: Math.round(stdDev),
+    edgeDensity: Math.round(edgeDensity * 10) / 10,
+    mask,
+    hairThreshold,
+  };
+}
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
 // ===== APP STATE =====
 const App = (() => {
   let currentIndex = 0;
-  let answers = {}; // { questionId: optionIndex }
+  let answers = {};
+  let photoScore = null;   // null = no photo uploaded
+  let photoMetrics = null;
 
   // ===== HELPERS =====
   function $(id) { return document.getElementById(id); }
+
   function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     $(id).classList.add('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // ===== PHOTO LOGIC =====
+  function initPhotoScreen() {
+    const zone = $('upload-zone');
+    const input = $('file-input');
+
+    // Drag & drop
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) processFile(file);
+    });
+
+    // Click-to-browse
+    zone.addEventListener('click', e => {
+      if (e.target.tagName !== 'BUTTON') input.click();
+    });
+
+    input.addEventListener('change', () => {
+      if (input.files[0]) processFile(input.files[0]);
+    });
+  }
+
+  function processFile(file) {
+    if (file.size > 20 * 1024 * 1024) {
+      alert('File is too large. Please upload an image under 20 MB.');
+      return;
+    }
+
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      runAnalysis(img);
+    };
+    img.src = url;
+  }
+
+  function runAnalysis(img) {
+    // Scale to max 400 px on longest side for performance
+    const MAX = 400;
+    const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+
+    // --- Main canvas (shows original image) ---
+    const canvas = $('photo-canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+
+    // --- Get pixel data ---
+    const imageData = ctx.getImageData(0, 0, w, h);
+    const result = analyseImageData(imageData);
+    photoScore = result.score;
+    photoMetrics = result;
+
+    // --- Overlay canvas (semi-transparent hair/scalp colouring) ---
+    const oc = $('overlay-canvas');
+    oc.width = w;
+    oc.height = h;
+    const octx = oc.getContext('2d');
+    const overlay = octx.createImageData(w, h);
+    const { mask } = result;
+
+    for (let i = 0; i < mask.length; i++) {
+      if (mask[i] === 1) {
+        // hair → green teal
+        overlay.data[i * 4 + 0] = 0;
+        overlay.data[i * 4 + 1] = 210;
+        overlay.data[i * 4 + 2] = 140;
+        overlay.data[i * 4 + 3] = 140;
+      } else {
+        // scalp → warm orange
+        overlay.data[i * 4 + 0] = 250;
+        overlay.data[i * 4 + 1] = 120;
+        overlay.data[i * 4 + 2] = 50;
+        overlay.data[i * 4 + 3] = 60;
+      }
+    }
+    octx.putImageData(overlay, 0, 0);
+
+    // --- Show analysis panel ---
+    $('photo-analysis-wrap').style.display = 'flex';
+    $('upload-zone').style.display = 'none';
+
+    $('photo-score-num').textContent = result.score;
+
+    // Metrics boxes
+    $('photo-metrics').innerHTML = `
+      <div class="metric-box">
+        <span class="m-value">${result.coveragePct}%</span>
+        <span class="m-label">Hair Coverage</span>
+      </div>
+      <div class="metric-box">
+        <span class="m-value">${result.stdDev}</span>
+        <span class="m-label">Texture Index</span>
+      </div>
+      <div class="metric-box">
+        <span class="m-value">${result.edgeDensity}</span>
+        <span class="m-label">Edge Density</span>
+      </div>
+    `;
+  }
+
+  function clearPhoto() {
+    photoScore = null;
+    photoMetrics = null;
+    $('photo-analysis-wrap').style.display = 'none';
+    $('upload-zone').style.display = 'block';
+    $('file-input').value = '';
+    $('photo-score-num').textContent = '—';
+    $('photo-metrics').innerHTML = '';
+
+    // Clear canvases
+    const c1 = $('photo-canvas');
+    const c2 = $('overlay-canvas');
+    c1.getContext('2d').clearRect(0, 0, c1.width, c1.height);
+    c2.getContext('2d').clearRect(0, 0, c2.width, c2.height);
+  }
+
   // ===== SCORING =====
-  function computeScore() {
+  function computeQuestionnaireScore() {
     let weightedSum = 0;
     let totalWeight = 0;
 
     QUESTIONS.forEach(q => {
       const answerIndex = answers[q.id];
       if (answerIndex === undefined) return;
-      const rawScore = q.options[answerIndex].score; // 1–5
+      const rawScore = q.options[answerIndex].score;
       const catWeight = CATEGORIES[q.category]?.weight ?? 1.0;
       weightedSum += rawScore * catWeight;
-      totalWeight += 5 * catWeight; // max possible contribution
+      totalWeight += 5 * catWeight;
     });
 
     if (totalWeight === 0) return 0;
     return Math.round((weightedSum / totalWeight) * 100);
   }
 
+  function computeFinalScore() {
+    const qScore = computeQuestionnaireScore();
+    if (photoScore === null) return qScore;
+    // Blend: 35% photo + 65% questionnaire
+    return Math.round(photoScore * 0.35 + qScore * 0.65);
+  }
+
   function getCategoryScores() {
     const catData = {};
-
     QUESTIONS.forEach(q => {
       const answerIndex = answers[q.id];
       if (answerIndex === undefined) return;
       const rawScore = q.options[answerIndex].score;
-      if (!catData[q.category]) catData[q.category] = { sum: 0, count: 0, max: 0 };
+      if (!catData[q.category]) catData[q.category] = { sum: 0, max: 0 };
       catData[q.category].sum += rawScore;
-      catData[q.category].count++;
       catData[q.category].max += 5;
     });
 
@@ -393,7 +611,8 @@ const App = (() => {
 
   // ===== RESULTS =====
   function renderResults() {
-    const score = computeScore();
+    const score = computeFinalScore();
+    const qScore = computeQuestionnaireScore();
     const band = getResultBand(score);
     const catScores = getCategoryScores();
 
@@ -406,10 +625,25 @@ const App = (() => {
 
     // Score & meter
     $('score-number').textContent = score;
-    const thumbPct = Math.min(Math.max(score, 2), 98);
+    const thumbPct = clamp(score, 2, 98);
     setTimeout(() => {
       $('density-thumb').style.left = `${thumbPct}%`;
     }, 100);
+
+    // Photo contribution note
+    const scoreBox = document.querySelector('.results-header-card');
+    const existingNote = scoreBox.querySelector('.photo-contribution');
+    if (existingNote) existingNote.remove();
+
+    if (photoScore !== null) {
+      const note = document.createElement('div');
+      note.className = 'photo-contribution';
+      note.innerHTML = `
+        <span>📸</span>
+        <span>Photo analysis score: <strong>${photoScore}</strong> &nbsp;|&nbsp; Questionnaire score: <strong>${qScore}</strong> &nbsp;|&nbsp; Blended (35 / 65%): <strong>${score}</strong></span>
+      `;
+      scoreBox.appendChild(note);
+    }
 
     // Category breakdown
     const breakdownList = $('breakdown-list');
@@ -462,10 +696,20 @@ const App = (() => {
 
   // ===== PUBLIC API =====
   function start() {
+    showScreen('screen-photo');
+  }
+
+  function continueToQuiz() {
     currentIndex = 0;
     answers = {};
     showScreen('screen-quiz');
     renderQuestion();
+  }
+
+  function skipPhoto() {
+    photoScore = null;
+    photoMetrics = null;
+    continueToQuiz();
   }
 
   function prev() {
@@ -488,6 +732,9 @@ const App = (() => {
   }
 
   function restart() {
+    photoScore = null;
+    photoMetrics = null;
+    clearPhoto();
     currentIndex = 0;
     answers = {};
     showScreen('screen-intro');
@@ -497,5 +744,8 @@ const App = (() => {
     window.print();
   }
 
-  return { start, prev, next, restart, print };
+  // Init photo listeners on DOMContentLoaded
+  document.addEventListener('DOMContentLoaded', initPhotoScreen);
+
+  return { start, continueToQuiz, skipPhoto, clearPhoto, prev, next, restart, print };
 })();

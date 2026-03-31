@@ -67,6 +67,65 @@
         </div>
       </section>
 
+      <!-- Photo Upload Screen -->
+      <section id="screen-photo" class="screen">
+        <div class="card photo-card">
+          <div class="photo-step-header">
+            <div class="photo-step-badge">Optional Step</div>
+            <h2>Upload a Scalp Photo</h2>
+            <p>For a more accurate result, upload a well-lit photo of your scalp. Our algorithm analyses hair coverage and texture directly from the image.</p>
+            <div class="photo-tip">
+              <span class="tip-icon">&#128247;</span>
+              <span>Best results: part your hair, hold the camera directly above your scalp in bright natural light.</span>
+            </div>
+          </div>
+
+          <!-- Drop Zone -->
+          <div class="upload-zone" id="upload-zone">
+            <input type="file" id="file-input" accept="image/*" style="display:none" />
+            <div class="upload-zone-inner" id="upload-zone-inner">
+              <div class="upload-icon">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                  <circle cx="24" cy="24" r="24" fill="#eef2ff"/>
+                  <path d="M24 30V18M24 18l-5 5M24 18l5 5" stroke="#4f46e5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <rect x="14" y="32" width="20" height="3" rx="1.5" fill="#4f46e5" opacity="0.3"/>
+                </svg>
+              </div>
+              <p class="upload-label">Drag &amp; drop your photo here</p>
+              <p class="upload-sub">or</p>
+              <button class="btn btn-outline" onclick="document.getElementById('file-input').click()">Browse File</button>
+              <p class="upload-formats">Supports JPG, PNG, WEBP &mdash; up to 20 MB</p>
+            </div>
+          </div>
+
+          <!-- Preview + Analysis (hidden until photo uploaded) -->
+          <div class="photo-analysis-wrap" id="photo-analysis-wrap" style="display:none">
+            <div class="canvas-wrap">
+              <canvas id="photo-canvas"></canvas>
+              <canvas id="overlay-canvas"></canvas>
+            </div>
+            <div class="photo-legend">
+              <span class="legend-dot hair-dot"></span> Detected hair &nbsp;&nbsp;
+              <span class="legend-dot scalp-dot"></span> Detected scalp
+            </div>
+            <div class="photo-metrics" id="photo-metrics"></div>
+            <div class="photo-score-row">
+              <div class="photo-score-box">
+                <span class="photo-score-num" id="photo-score-num">—</span>
+                <span class="photo-score-label">Photo Density Score</span>
+              </div>
+              <p class="photo-score-note">This score will be blended with your questionnaire answers for the final result.</p>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="App.clearPhoto()">&#10005; Remove photo</button>
+          </div>
+
+          <div class="photo-actions">
+            <button class="btn btn-primary" id="btn-photo-continue" onclick="App.continueToQuiz()">Continue to Questions &#8594;</button>
+            <button class="btn btn-ghost" onclick="App.skipPhoto()">Skip — use questionnaire only</button>
+          </div>
+        </div>
+      </section>
+
       <!-- Quiz Screen -->
       <section id="screen-quiz" class="screen">
         <div class="quiz-container">
