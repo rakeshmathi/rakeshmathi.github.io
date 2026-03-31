@@ -386,9 +386,10 @@ const Crop = (() => {
     _canvas = $('crop-canvas');
     _ctx    = _canvas.getContext('2d');
 
-    const wrap   = $('crop-canvas-wrap');
-    const maxW   = wrap.clientWidth  || 600;
-    const maxH   = Math.min(window.innerHeight * 0.5, 420);
+    // Use window width to avoid reading clientWidth before layout settles
+    const cardPadding = 64; // card padding + page margins
+    const maxW = Math.min(window.innerWidth - cardPadding, 640);
+    const maxH = Math.min(window.innerHeight * 0.5, 420);
     const ratio  = img.naturalHeight / img.naturalWidth;
 
     let cw = maxW;
@@ -489,8 +490,8 @@ const App = (() => {
       // Show crop screen
       Crop.destroy();
       showScreen('screen-crop');
-      // Wait one frame so canvas has layout dimensions
-      requestAnimationFrame(() => Crop.init(img));
+      // Small delay ensures the screen is visible and layout is settled
+      setTimeout(() => Crop.init(img), 60);
     };
 
     img.onerror = () => {
