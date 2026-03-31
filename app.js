@@ -218,11 +218,11 @@ function analyseImageData(imageData) {
     else if (c === 2) hairCount++;
   }
 
-  // 2. Remove hair pixels that are too far from any skin pixel (background blobs)
-  //    Dilation radius of 25px: hair strands adjacent to scalp survive; isolated
-  //    dark blobs (background, dark clothing edges) are reclassified as other (0).
+  // 2. Remove hair pixels that are too far from any skin pixel (background blobs).
+  //    Radius 12px: real hair strands adjacent to scalp survive; wall texture and
+  //    background blobs further than 12px from any skin pixel are reclassified as 0.
   if (skinCount > n * 0.02) {
-    removeSkinDistantHair(cls, width, height, 25);
+    removeSkinDistantHair(cls, width, height, 12);
     // Recount after filtering
     skinCount = 0; hairCount = 0;
     for (let i = 0; i < n; i++) {
@@ -340,16 +340,19 @@ function analyseImageData(imageData) {
   const mask = cls;
 
   // 8. Weighted score — coverage is primary, texture/edges are secondary
+  // Coverage is the most reliable metric — it directly measures hair/scalp ratio
+  // and is unaffected by the hair-ring pattern that inflates texture/edge scores.
+  // Texture and edge are kept as minor signals but heavily down-weighted.
   const covScore  = clamp((coverageRatio - 0.05) / 0.70 * 100, 5, 95);
-  const texScore  = clamp((textureRatio  - 0.05) / 0.55 * 100, 5, 95);
-  const edgeScore = clamp((edgeDensity   - 3)    / 20   * 100, 5, 95);
   const sdScore   = clamp((stdDev        - 6)    / 52   * 100, 5, 95);
+  const texScore  = clamp((textureRatio  - 0.05) / 0.55 * 100, 5, 95);
+  const edgeScore = clamp((edgeDensity   - 3)    / 47   * 100, 5, 95); // wider range — hair ring creates high edges
 
   const finalScore = Math.round(
-    covScore  * 0.45 +
-    texScore  * 0.25 +
-    edgeScore * 0.20 +
-    sdScore   * 0.10
+    covScore  * 0.72 +
+    sdScore   * 0.15 +
+    texScore  * 0.08 +
+    edgeScore * 0.05
   );
 
   return {
