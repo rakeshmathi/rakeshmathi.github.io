@@ -531,6 +531,204 @@ body {
   font-style: italic;
 }
 
+/* ===== PHOTO UPLOAD ===== */
+.photo-card { display: flex; flex-direction: column; gap: 24px; }
+
+.photo-step-header { text-align: center; }
+
+.photo-step-badge {
+  display: inline-block;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid #fde68a;
+  margin-bottom: 12px;
+}
+
+.photo-step-header h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--gray-900);
+  margin-bottom: 8px;
+}
+
+.photo-step-header p {
+  font-size: 0.95rem;
+  color: var(--gray-500);
+  max-width: 480px;
+  margin: 0 auto 16px;
+}
+
+.photo-tip {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--primary-subtle);
+  border: 1px solid #c7d2fe;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: var(--primary-dark);
+  max-width: 460px;
+  text-align: left;
+}
+
+.tip-icon { font-size: 1.1rem; flex-shrink: 0; }
+
+/* Drop Zone */
+.upload-zone {
+  border: 2px dashed var(--gray-300);
+  border-radius: var(--radius);
+  background: var(--gray-50);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.upload-zone.dragover {
+  border-color: var(--primary);
+  background: var(--primary-subtle);
+}
+
+.upload-zone-inner {
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.upload-icon { margin-bottom: 4px; }
+.upload-label { font-size: 1rem; font-weight: 600; color: var(--gray-700); }
+.upload-sub { font-size: 0.85rem; color: var(--gray-500); }
+.upload-formats { font-size: 0.78rem; color: var(--gray-500); margin-top: 4px; }
+
+/* Canvas & Preview */
+.photo-analysis-wrap { display: flex; flex-direction: column; gap: 14px; }
+
+.canvas-wrap {
+  position: relative;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  max-height: 320px;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#photo-canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  width: auto;
+  height: auto;
+}
+
+#overlay-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  max-width: 100%;
+  max-height: 320px;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.photo-legend {
+  display: flex;
+  align-items: center;
+  font-size: 0.82rem;
+  color: var(--gray-500);
+  gap: 4px;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 12px; height: 12px;
+  border-radius: 3px;
+  margin-right: 2px;
+}
+
+.hair-dot  { background: rgba(0, 210, 140, 0.8); }
+.scalp-dot { background: rgba(250, 120, 50, 0.5); }
+
+.photo-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.metric-box {
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  text-align: center;
+}
+
+.metric-box .m-value {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--primary);
+  display: block;
+}
+
+.metric-box .m-label {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  display: block;
+  margin-top: 2px;
+}
+
+.photo-score-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--primary-subtle);
+  border: 1px solid #c7d2fe;
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+}
+
+.photo-score-box { text-align: center; flex-shrink: 0; }
+.photo-score-num {
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: var(--primary);
+  display: block;
+  line-height: 1;
+}
+.photo-score-label { font-size: 0.75rem; color: var(--gray-500); display: block; margin-top: 2px; }
+.photo-score-note { font-size: 0.85rem; color: var(--primary-dark); flex: 1; }
+
+.btn-sm { padding: 6px 14px; font-size: 0.82rem; align-self: flex-start; }
+
+.photo-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* Results - photo contribution note */
+.photo-contribution {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--primary-subtle);
+  border: 1px solid #c7d2fe;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: var(--primary-dark);
+  margin-top: 14px;
+}
+
 /* ===== ANIMATIONS ===== */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(20px); }
