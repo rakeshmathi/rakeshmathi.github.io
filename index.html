@@ -104,6 +104,22 @@
         </div>
       </section>
 
+      <!-- Crop Screen -->
+      <section id="screen-crop" class="screen">
+        <div class="card crop-card">
+          <h2 class="crop-title">Crop to Scalp Area</h2>
+          <p class="crop-subtitle">Drag the <strong>corners</strong> to resize and drag <strong>inside</strong> to move the selection. Exclude hair, clothing, and background for the best result.</p>
+          <div class="crop-canvas-wrap" id="crop-canvas-wrap">
+            <canvas id="crop-canvas"></canvas>
+          </div>
+          <p class="crop-hint">&#8597; Drag corners to resize &nbsp;&bull;&nbsp; &#8596; Drag inside to move</p>
+          <div class="crop-actions">
+            <button class="btn btn-primary" onclick="App.confirmCrop()">Analyse Selected Area &#8594;</button>
+            <button class="btn btn-ghost" onclick="App.reupload()">&#8592; Re-upload</button>
+          </div>
+        </div>
+      </section>
+
       <!-- Results -->
       <section id="screen-results" class="screen">
         <div class="results-container">
