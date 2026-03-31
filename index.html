@@ -8,11 +8,11 @@
 </head>
 <body>
   <div class="app-wrapper">
-    <!-- Header -->
+
     <header class="header">
       <div class="header-inner">
         <div class="logo">
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
             <circle cx="16" cy="16" r="16" fill="#4f46e5"/>
             <path d="M10 24 Q10 10 16 8 Q22 10 22 24" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
             <path d="M13 24 Q13 13 16 11 Q19 13 19 24" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
@@ -20,16 +20,17 @@
           </svg>
           <span>HairDensity<strong>Screen</strong></span>
         </div>
-        <div class="header-badge">Free Screening Tool</div>
+        <div class="header-badge">AI-Powered Analysis</div>
       </div>
     </header>
 
     <main class="main">
-      <!-- Landing / Intro -->
+
+      <!-- Intro -->
       <section id="screen-intro" class="screen active">
         <div class="card intro-card">
           <div class="intro-illustration">
-            <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
               <circle cx="60" cy="60" r="56" fill="#eef2ff"/>
               <ellipse cx="60" cy="55" rx="26" ry="20" fill="#c7d2fe"/>
               <path d="M38 68 Q38 40 60 36 Q82 40 82 68" stroke="#4f46e5" stroke-width="3" fill="none" stroke-linecap="round"/>
@@ -40,66 +41,96 @@
               <text x="60" y="72" text-anchor="middle" fill="white" font-size="10" font-weight="bold">HD</text>
             </svg>
           </div>
-          <h1 class="intro-title">Hair Density Screening</h1>
+          <h1 class="intro-title">Instant Hair Density Analysis</h1>
           <p class="intro-subtitle">
-            Answer a series of simple questions to assess your hair density and get personalized insights in under 2 minutes.
+            Upload a photo of your scalp and our algorithm analyses hair coverage, strand texture, and edge density automatically — no questionnaire needed.
           </p>
           <div class="intro-features">
-            <div class="feature-item">
-              <span class="feature-icon">&#10003;</span>
-              <span>12 scientifically-based questions</span>
-            </div>
-            <div class="feature-item">
-              <span class="feature-icon">&#10003;</span>
-              <span>Instant density classification</span>
-            </div>
-            <div class="feature-item">
-              <span class="feature-icon">&#10003;</span>
-              <span>Personalized care recommendations</span>
-            </div>
-            <div class="feature-item">
-              <span class="feature-icon">&#10003;</span>
-              <span>100% private &mdash; no data stored</span>
-            </div>
+            <div class="feature-item"><span class="feature-icon">&#10003;</span><span>Fully automated — photo only</span></div>
+            <div class="feature-item"><span class="feature-icon">&#10003;</span><span>Results in seconds</span></div>
+            <div class="feature-item"><span class="feature-icon">&#10003;</span><span>100% private — processed on your device</span></div>
+            <div class="feature-item"><span class="feature-icon">&#10003;</span><span>Personalised care recommendations</span></div>
           </div>
-          <button class="btn btn-primary btn-large" onclick="App.start()">Start Screening</button>
-          <p class="disclaimer">This tool is for informational purposes only and does not substitute professional medical advice.</p>
+          <button class="btn btn-primary btn-large" onclick="App.start()">Analyse My Hair</button>
+          <p class="disclaimer">Informational only — not a substitute for professional medical advice.</p>
         </div>
       </section>
 
-      <!-- Photo Upload Screen -->
-      <section id="screen-photo" class="screen">
-        <div class="card photo-card">
-          <div class="photo-step-header">
-            <div class="photo-step-badge">Optional Step</div>
-            <h2>Upload a Scalp Photo</h2>
-            <p>For a more accurate result, upload a well-lit photo of your scalp. Our algorithm analyses hair coverage and texture directly from the image.</p>
-            <div class="photo-tip">
-              <span class="tip-icon">&#128247;</span>
-              <span>Best results: part your hair, hold the camera directly above your scalp in bright natural light.</span>
-            </div>
+      <!-- Upload & Analysis -->
+      <section id="screen-upload" class="screen">
+        <div class="card upload-card">
+          <h2 class="upload-title">Upload Your Scalp Photo</h2>
+          <p class="upload-subtitle">Part your hair, hold the camera directly above your scalp in bright natural light, then upload below.</p>
+
+          <div class="upload-tips">
+            <div class="tip-item"><span>&#9728;&#65039;</span><span>Bright natural light</span></div>
+            <div class="tip-item"><span>&#128247;</span><span>Camera directly above scalp</span></div>
+            <div class="tip-item"><span>&#9986;&#65039;</span><span>Hair parted to expose scalp</span></div>
+            <div class="tip-item"><span>&#128269;</span><span>Sharp focus</span></div>
           </div>
 
           <!-- Drop Zone -->
           <div class="upload-zone" id="upload-zone">
             <input type="file" id="file-input" accept="image/*" style="display:none" />
-            <div class="upload-zone-inner" id="upload-zone-inner">
+            <div class="upload-zone-inner">
               <div class="upload-icon">
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                  <circle cx="24" cy="24" r="24" fill="#eef2ff"/>
-                  <path d="M24 30V18M24 18l-5 5M24 18l5 5" stroke="#4f46e5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  <rect x="14" y="32" width="20" height="3" rx="1.5" fill="#4f46e5" opacity="0.3"/>
+                <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+                  <circle cx="26" cy="26" r="26" fill="#eef2ff"/>
+                  <path d="M26 33V19M26 19l-6 6M26 19l6 6" stroke="#4f46e5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <rect x="16" y="36" width="20" height="3" rx="1.5" fill="#4f46e5" opacity="0.3"/>
                 </svg>
               </div>
               <p class="upload-label">Drag &amp; drop your photo here</p>
               <p class="upload-sub">or</p>
               <button class="btn btn-outline" onclick="document.getElementById('file-input').click()">Browse File</button>
-              <p class="upload-formats">Supports JPG, PNG, WEBP &mdash; up to 20 MB</p>
+              <p class="upload-formats">JPG &middot; PNG &middot; WEBP &mdash; up to 20 MB</p>
             </div>
           </div>
 
-          <!-- Preview + Analysis (hidden until photo uploaded) -->
-          <div class="photo-analysis-wrap" id="photo-analysis-wrap" style="display:none">
+          <!-- Analysing state -->
+          <div id="analysing-state" style="display:none" class="analysing-state">
+            <div class="spinner-ring"></div>
+            <div class="analysing-steps">
+              <div class="a-step" id="step-load">Loading image&hellip;</div>
+              <div class="a-step" id="step-coverage">Measuring hair coverage&hellip;</div>
+              <div class="a-step" id="step-texture">Computing texture index&hellip;</div>
+              <div class="a-step" id="step-edges">Detecting strand edges&hellip;</div>
+              <div class="a-step" id="step-regions">Analysing regional density&hellip;</div>
+              <div class="a-step" id="step-score">Calculating final score&hellip;</div>
+            </div>
+          </div>
+
+          <button class="btn btn-ghost" onclick="App.restart()" style="margin-top:16px;align-self:center">&#8592; Back</button>
+        </div>
+      </section>
+
+      <!-- Results -->
+      <section id="screen-results" class="screen">
+        <div class="results-container">
+
+          <div class="card results-header-card">
+            <div class="result-badge" id="result-badge"></div>
+            <h2 class="result-title" id="result-title"></h2>
+            <p class="result-summary" id="result-summary"></p>
+
+            <div class="density-meter">
+              <div class="density-track">
+                <div class="density-thumb" id="density-thumb"></div>
+              </div>
+              <div class="density-labels">
+                <span>Very Low</span><span>Low</span><span>Medium</span><span>High</span><span>Very High</span>
+              </div>
+            </div>
+
+            <div class="score-display">
+              <span class="score-number" id="score-number"></span>
+              <span class="score-label">/ 100 Density Score</span>
+            </div>
+          </div>
+
+          <!-- Visual analysis -->
+          <div class="card canvas-card">
+            <h3>Photo Analysis</h3>
             <div class="canvas-wrap">
               <canvas id="photo-canvas"></canvas>
               <canvas id="overlay-canvas"></canvas>
@@ -109,105 +140,37 @@
               <span class="legend-dot scalp-dot"></span> Detected scalp
             </div>
             <div class="photo-metrics" id="photo-metrics"></div>
-            <div class="photo-score-row">
-              <div class="photo-score-box">
-                <span class="photo-score-num" id="photo-score-num">—</span>
-                <span class="photo-score-label">Photo Density Score</span>
-              </div>
-              <p class="photo-score-note">This score will be blended with your questionnaire answers for the final result.</p>
-            </div>
-            <button class="btn btn-ghost btn-sm" onclick="App.clearPhoto()">&#10005; Remove photo</button>
           </div>
 
-          <div class="photo-actions">
-            <button class="btn btn-primary" id="btn-photo-continue" onclick="App.continueToQuiz()">Continue to Questions &#8594;</button>
-            <button class="btn btn-ghost" onclick="App.skipPhoto()">Skip — use questionnaire only</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- Quiz Screen -->
-      <section id="screen-quiz" class="screen">
-        <div class="quiz-container">
-          <div class="progress-bar-wrap">
-            <div class="progress-info">
-              <span id="progress-label">Question 1 of 12</span>
-              <span id="progress-pct">0%</span>
-            </div>
-            <div class="progress-track">
-              <div class="progress-fill" id="progress-fill"></div>
-            </div>
-          </div>
-
-          <div class="card question-card" id="question-card">
-            <div class="question-category" id="question-category"></div>
-            <h2 class="question-text" id="question-text"></h2>
-            <p class="question-hint" id="question-hint"></p>
-            <div class="options-grid" id="options-grid"></div>
-          </div>
-
-          <div class="quiz-nav">
-            <button class="btn btn-ghost" id="btn-prev" onclick="App.prev()" disabled>&#8592; Previous</button>
-            <button class="btn btn-primary" id="btn-next" onclick="App.next()" disabled>Next &#8594;</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- Results Screen -->
-      <section id="screen-results" class="screen">
-        <div class="results-container">
-          <div class="card results-header-card">
-            <div class="result-badge" id="result-badge"></div>
-            <h2 class="result-title" id="result-title"></h2>
-            <p class="result-summary" id="result-summary"></p>
-            <div class="density-meter">
-              <div class="density-track">
-                <div class="density-fill" id="density-fill"></div>
-                <div class="density-thumb" id="density-thumb"></div>
-              </div>
-              <div class="density-labels">
-                <span>Very Low</span>
-                <span>Low</span>
-                <span>Medium</span>
-                <span>High</span>
-                <span>Very High</span>
-              </div>
-            </div>
-            <div class="score-display">
-              <span class="score-number" id="score-number"></span>
-              <span class="score-label">/ 100 Density Score</span>
-            </div>
+          <!-- Region heatmap -->
+          <div class="card region-card">
+            <h3>Regional Density Map</h3>
+            <p class="region-desc">Your scalp divided into 9 zones — darker colour = denser hair coverage.</p>
+            <div class="region-grid" id="region-grid"></div>
           </div>
 
           <div class="results-grid">
-            <div class="card breakdown-card">
-              <h3>Category Breakdown</h3>
-              <div id="breakdown-list"></div>
-            </div>
             <div class="card recs-card">
               <h3>Recommendations</h3>
               <ul id="recommendations-list" class="recs-list"></ul>
             </div>
-          </div>
-
-          <div class="card next-steps-card">
-            <h3>Next Steps</h3>
-            <div id="next-steps"></div>
+            <div class="card next-steps-card">
+              <h3>Next Steps</h3>
+              <div id="next-steps"></div>
+            </div>
           </div>
 
           <div class="results-actions">
-            <button class="btn btn-primary" onclick="App.restart()">Retake Screening</button>
+            <button class="btn btn-primary" onclick="App.restart()">Analyse Another Photo</button>
             <button class="btn btn-outline" onclick="App.print()">Save Results</button>
           </div>
 
-          <p class="disclaimer">
-            This screening is informational only. For medical concerns about hair loss or scalp health, please consult a dermatologist or trichologist.
-          </p>
+          <p class="disclaimer">This screening is informational only. For medical concerns consult a dermatologist or trichologist.</p>
         </div>
       </section>
+
     </main>
   </div>
-
   <script src="app.js"></script>
 </body>
 </html>
