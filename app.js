@@ -128,35 +128,110 @@ function activateStep(stepId) {
 }
 
 // ===== IMAGE ANALYSIS ENGINE =====
+
+// Convert RGB (0-255) to HSL (H: 0-360, S: 0-100, L: 0-100)
+function rgbToHsl(r, g, b) {
+  const rn = r / 255, gn = g / 255, bn = b / 255;
+  const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l * 100];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h;
+  switch (max) {
+    case rn: h = (gn - bn) / d + (gn < bn ? 6 : 0); break;
+    case gn: h = (bn - rn) / d + 2; break;
+    default: h = (rn - gn) / d + 4;
+  }
+  return [h / 6 * 360, s * 100, l * 100];
+}
+
+// Classify each pixel:  0 = background/clothing  1 = scalp/skin  2 = hair
+// Clothing/background is excluded by filtering out saturated non-warm hues
+function classifyPixel(r, g, b) {
+  const [h, s, l] = rgbToHsl(r, g, b);
+
+  // Scalp/skin: warm hue (red-yellow-orange), moderate saturation & lightness
+  // Works for a wide range of skin tones
+  const warmHue = (h <= 55) || (h >= 340); // red wraps around 360
+  if (warmHue && s >= 8 && s <= 85 && l >= 18 && l <= 88) return 1;
+
+  // Hair: dark pixel that is NOT a saturated cool colour (blue/green/teal/purple)
+  // This excludes clothing and coloured backgrounds
+  const isCoolColoured = (h > 60 && h < 310) && s > 14;
+  if (l < 45 && !isCoolColoured) return 2;
+
+  return 0; // background / clothing — ignored
+}
+
 function analyseImageData(imageData) {
   const { data, width, height } = imageData;
   const n = width * height;
 
-  // 1. Luminance
-  const lum = new Float32Array(n);
+  // 1. Classify every pixel into scalp (1), hair (2), or other (0)
+  const cls = new Uint8Array(n); // 0=other, 1=skin, 2=hair
+  let skinCount = 0, hairCount = 0;
+
   for (let i = 0; i < n; i++) {
-    lum[i] = 0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
+    const c = classifyPixel(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]);
+    cls[i] = c;
+    if (c === 1) skinCount++;
+    else if (c === 2) hairCount++;
   }
 
-  // 2. Global mean & stdDev
-  let sum = 0;
-  for (let i = 0; i < n; i++) sum += lum[i];
-  const mean = sum / n;
-  let sumSq = 0;
-  for (let i = 0; i < n; i++) sumSq += (lum[i] - mean) ** 2;
-  const stdDev = Math.sqrt(sumSq / n);
+  const scalpTotal = skinCount + hairCount;
 
-  // 3. Adaptive hair coverage
-  const hairThreshold = mean - stdDev * 0.35;
-  let hairCount = 0;
-  for (let i = 0; i < n; i++) if (lum[i] < hairThreshold) hairCount++;
-  const coverageRatio = hairCount / n;
+  // Fallback: if colour classification detects very little scalp (e.g. unusual
+  // photo), revert to luminance-based approach so we always return a result
+  if (scalpTotal < n * 0.04) {
+    let lumSum = 0;
+    const lum = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      lum[i] = 0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
+      lumSum += lum[i];
+    }
+    const mean = lumSum / n;
+    let sq = 0;
+    for (let i = 0; i < n; i++) sq += (lum[i] - mean) ** 2;
+    const std = Math.sqrt(sq / n);
+    const thr = mean - std * 0.35;
+    let hc = 0;
+    const mask = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+      if (lum[i] < thr) { hc++; mask[i] = 2; } else { mask[i] = 1; }
+    }
+    const cr = hc / n;
+    const sc = clamp((cr - 0.08) / 0.67 * 100, 5, 95);
+    return {
+      score: clamp(Math.round(sc), 5, 95),
+      coveragePct: Math.round(cr * 100),
+      texturePct: 50, edgeDensity: 0, stdDev: Math.round(std),
+      regionScores: Array(9).fill(Math.round(cr * 100)),
+      mask, fallback: true,
+    };
+  }
 
-  // 4. Sobel edge density
+  // 2. Hair coverage ratio — only within the scalp region
+  const coverageRatio = hairCount / scalpTotal;
+
+  // 3. Luminance for texture/edge metrics — computed only on scalp pixels
+  const lum = new Float32Array(n);
+  let lumSum = 0, lumCount = 0;
+  for (let i = 0; i < n; i++) {
+    lum[i] = 0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
+    if (cls[i] > 0) { lumSum += lum[i]; lumCount++; }
+  }
+  const scalpMean = lumSum / lumCount;
+  let sqSum = 0;
+  for (let i = 0; i < n; i++) if (cls[i] > 0) sqSum += (lum[i] - scalpMean) ** 2;
+  const stdDev = Math.sqrt(sqSum / lumCount);
+
+  // 4. Sobel edge density — only between scalp pixels
   let edgeSum = 0, edgeCount = 0;
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
       const i = y * width + x;
+      if (cls[i] === 0) continue; // skip background
       const gx = (-lum[i - width - 1] - 2 * lum[i - 1] - lum[i + width - 1])
                + ( lum[i - width + 1] + 2 * lum[i + 1] + lum[i + width + 1]);
       const gy = (-lum[i - width - 1] - 2 * lum[i - width] - lum[i - width + 1])
@@ -165,58 +240,65 @@ function analyseImageData(imageData) {
       edgeCount++;
     }
   }
-  const edgeDensity = edgeSum / edgeCount;
+  const edgeDensity = edgeCount > 0 ? edgeSum / edgeCount : 0;
 
-  // 5. Block variance (8x8) — counts hair-textured blocks
+  // 5. Block variance (8×8) — only blocks with ≥40% scalp pixels count
   const BLOCK = 8;
   let texturedBlocks = 0, totalBlocks = 0;
   for (let by = 0; by + BLOCK <= height; by += BLOCK) {
     for (let bx = 0; bx + BLOCK <= width; bx += BLOCK) {
-      let bSum = 0, bSumSq = 0;
+      let bSum = 0, bSumSq = 0, bScalp = 0;
       for (let dy = 0; dy < BLOCK; dy++) {
         for (let dx = 0; dx < BLOCK; dx++) {
-          const v = lum[(by + dy) * width + (bx + dx)];
-          bSum += v; bSumSq += v * v;
+          const idx = (by + dy) * width + (bx + dx);
+          bSum += lum[idx]; bSumSq += lum[idx] * lum[idx];
+          if (cls[idx] > 0) bScalp++;
         }
       }
-      const bN    = BLOCK * BLOCK;
+      const bN = BLOCK * BLOCK;
+      if (bScalp / bN < 0.4) continue; // skip mostly-background blocks
       const bMean = bSum / bN;
       const bVar  = bSumSq / bN - bMean * bMean;
-      if (bVar > 80) texturedBlocks++;
+      if (bVar > 60) texturedBlocks++;
       totalBlocks++;
     }
   }
-  const textureRatio = texturedBlocks / totalBlocks;
+  const textureRatio = totalBlocks > 0 ? texturedBlocks / totalBlocks : 0;
 
-  // 6. 3x3 regional density map
+  // 6. 3×3 regional density map — hair/(hair+skin) per zone
   const regionScores = [];
   const rW = Math.floor(width / 3);
   const rH = Math.floor(height / 3);
   for (let ry = 0; ry < 3; ry++) {
     for (let rx = 0; rx < 3; rx++) {
-      let rHair = 0, rTotal = 0;
+      let rHair = 0, rSkin = 0;
       for (let dy = 0; dy < rH; dy++) {
         for (let dx = 0; dx < rW; dx++) {
-          const idx = (ry * rH + dy) * width + (rx * rW + dx);
-          if (lum[idx] < hairThreshold) rHair++;
-          rTotal++;
+          const c = cls[(ry * rH + dy) * width + (rx * rW + dx)];
+          if (c === 2) rHair++;
+          else if (c === 1) rSkin++;
         }
       }
-      regionScores.push(Math.round((rHair / rTotal) * 100));
+      const rTotal = rHair + rSkin;
+      regionScores.push(rTotal > 0 ? Math.round((rHair / rTotal) * 100) : 0);
     }
   }
 
-  // 7. Overlay mask
-  const mask = new Uint8Array(n);
-  for (let i = 0; i < n; i++) mask[i] = lum[i] < hairThreshold ? 1 : 0;
+  // 7. Mask for overlay: 0=excluded(bg), 1=scalp, 2=hair
+  const mask = cls;
 
-  // 8. Weighted score
-  const covScore  = clamp((coverageRatio - 0.08) / 0.67 * 100, 5, 95);
+  // 8. Weighted score — coverage is primary, texture/edges are secondary
+  const covScore  = clamp((coverageRatio - 0.05) / 0.70 * 100, 5, 95);
   const texScore  = clamp((textureRatio  - 0.05) / 0.55 * 100, 5, 95);
-  const edgeScore = clamp((edgeDensity   - 4)    / 18   * 100, 5, 95);
-  const sdScore   = clamp((stdDev        - 8)    / 57   * 100, 5, 95);
+  const edgeScore = clamp((edgeDensity   - 3)    / 20   * 100, 5, 95);
+  const sdScore   = clamp((stdDev        - 6)    / 52   * 100, 5, 95);
 
-  const finalScore = Math.round(covScore * 0.35 + texScore * 0.30 + edgeScore * 0.20 + sdScore * 0.15);
+  const finalScore = Math.round(
+    covScore  * 0.45 +
+    texScore  * 0.25 +
+    edgeScore * 0.20 +
+    sdScore   * 0.10
+  );
 
   return {
     score: clamp(finalScore, 5, 95),
