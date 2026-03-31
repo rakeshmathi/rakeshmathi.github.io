@@ -20,14 +20,60 @@
           </svg>
           <span>HairDensity<strong>Screen</strong></span>
         </div>
-        <div class="header-badge">AI-Powered Analysis</div>
+        <div class="header-right">
+          <div class="header-user" id="header-user" style="display:none">
+            <span class="user-email" id="user-email"></span>
+            <button class="btn btn-ghost btn-xs" onclick="App.showHistory()">&#128203; History</button>
+            <button class="btn btn-ghost btn-xs" onclick="Auth.logout()">Logout</button>
+          </div>
+          <div class="header-badge" id="header-badge">AI-Powered Analysis</div>
+        </div>
       </div>
     </header>
 
     <main class="main">
 
+      <!-- Auth Screen -->
+      <section id="screen-auth" class="screen">
+        <div class="card auth-card">
+          <div class="auth-logo">
+            <svg width="48" height="48" viewBox="0 0 32 32" fill="none">
+              <circle cx="16" cy="16" r="16" fill="#4f46e5"/>
+              <path d="M10 24 Q10 10 16 8 Q22 10 22 24" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+              <path d="M13 24 Q13 13 16 11 Q19 13 19 24" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+              <path d="M16 24 L16 12" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            </svg>
+            <h1 class="auth-title">HairDensity<strong>Screen</strong></h1>
+          </div>
+
+          <div class="auth-tabs">
+            <button class="auth-tab active" id="tab-login"  onclick="Auth.showTab('login')">Log In</button>
+            <button class="auth-tab"        id="tab-signup" onclick="Auth.showTab('signup')">Sign Up</button>
+          </div>
+
+          <div class="auth-error" id="auth-error" style="display:none"></div>
+
+          <form id="auth-form" onsubmit="Auth.submit(event)">
+            <div class="form-group">
+              <label for="auth-email">Email</label>
+              <input type="email" id="auth-email" required placeholder="you@example.com" autocomplete="email" />
+            </div>
+            <div class="form-group">
+              <label for="auth-password">Password</label>
+              <input type="password" id="auth-password" required placeholder="Min. 6 characters" autocomplete="current-password" />
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" id="auth-submit">Log In</button>
+          </form>
+
+          <p class="auth-switch" id="auth-switch">
+            Don&apos;t have an account? <a href="#" onclick="Auth.showTab('signup');return false;">Sign up</a>
+          </p>
+          <p class="disclaimer">Your data is stored securely and never shared.</p>
+        </div>
+      </section>
+
       <!-- Intro -->
-      <section id="screen-intro" class="screen active">
+      <section id="screen-intro" class="screen">
         <div class="card intro-card">
           <div class="intro-illustration">
             <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
@@ -49,7 +95,7 @@
             <div class="feature-item"><span class="feature-icon">&#10003;</span><span>Fully automated — photo only</span></div>
             <div class="feature-item"><span class="feature-icon">&#10003;</span><span>Results in seconds</span></div>
             <div class="feature-item"><span class="feature-icon">&#10003;</span><span>100% private — processed on your device</span></div>
-            <div class="feature-item"><span class="feature-icon">&#10003;</span><span>Personalised care recommendations</span></div>
+            <div class="feature-item"><span class="feature-icon">&#10003;</span><span>Scan history saved to your account</span></div>
           </div>
           <button class="btn btn-primary btn-large" onclick="App.start()">Analyse My Hair</button>
           <p class="disclaimer">Informational only — not a substitute for professional medical advice.</p>
@@ -69,7 +115,6 @@
             <div class="tip-item"><span>&#128269;</span><span>Sharp focus</span></div>
           </div>
 
-          <!-- Drop Zone -->
           <div class="upload-zone" id="upload-zone">
             <input type="file" id="file-input" accept="image/*" style="display:none" />
             <div class="upload-zone-inner">
@@ -87,7 +132,6 @@
             </div>
           </div>
 
-          <!-- Analysing state -->
           <div id="analysing-state" style="display:none" class="analysing-state">
             <div class="spinner-ring"></div>
             <div class="analysing-steps">
@@ -142,9 +186,10 @@
               <span class="score-number" id="score-number"></span>
               <span class="score-label">/ 100 Density Score</span>
             </div>
+
+            <div class="save-status" id="save-status"></div>
           </div>
 
-          <!-- Visual analysis -->
           <div class="card canvas-card">
             <h3>Photo Analysis</h3>
             <div class="canvas-wrap">
@@ -158,7 +203,6 @@
             <div class="photo-metrics" id="photo-metrics"></div>
           </div>
 
-          <!-- Region heatmap -->
           <div class="card region-card">
             <h3>Regional Density Map</h3>
             <p class="region-desc">Your scalp divided into 9 zones — darker colour = denser hair coverage.</p>
@@ -178,15 +222,32 @@
 
           <div class="results-actions">
             <button class="btn btn-primary" onclick="App.restart()">Analyse Another Photo</button>
-            <button class="btn btn-outline" onclick="App.print()">Save Results</button>
+            <button class="btn btn-outline" onclick="App.showHistory()">&#128203; View History</button>
+            <button class="btn btn-ghost"   onclick="App.print()">Print / Save PDF</button>
           </div>
 
           <p class="disclaimer">This screening is informational only. For medical concerns consult a dermatologist or trichologist.</p>
         </div>
       </section>
 
+      <!-- History Screen -->
+      <section id="screen-history" class="screen">
+        <div class="card history-card">
+          <div class="history-header">
+            <h2>Scan History</h2>
+            <button class="btn btn-primary btn-sm" onclick="App.start()">+ New Scan</button>
+          </div>
+          <div id="history-list"><div class="history-loading">Loading&hellip;</div></div>
+        </div>
+      </section>
+
     </main>
   </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

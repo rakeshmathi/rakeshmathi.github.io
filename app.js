@@ -1,5 +1,105 @@
 'use strict';
 
+// ===== FIREBASE =====
+const firebaseConfig = {
+  apiKey:            'AIzaSyAWD4VlIAjjcan4Xf7RPI_-ss5v10EzSlU',
+  authDomain:        'hair-density-18ad5.firebaseapp.com',
+  projectId:         'hair-density-18ad5',
+  storageBucket:     'hair-density-18ad5.firebasestorage.app',
+  messagingSenderId: '869241336508',
+  appId:             '1:869241336508:web:7dd5a57bee096926f756b9',
+};
+firebase.initializeApp(firebaseConfig);
+const fbAuth = firebase.auth();
+const fbDb   = firebase.firestore();
+
+// ===== AUTH MODULE =====
+const Auth = (() => {
+  let _tab = 'login';
+
+  function showTab(tab) {
+    _tab = tab;
+    $('tab-login') .classList.toggle('active', tab === 'login');
+    $('tab-signup').classList.toggle('active', tab === 'signup');
+    $('auth-submit').textContent = tab === 'login' ? 'Log In' : 'Create Account';
+    $('auth-switch').innerHTML = tab === 'login'
+      ? 'Don\'t have an account? <a href="#" onclick="Auth.showTab(\'signup\');return false;">Sign up</a>'
+      : 'Already have an account? <a href="#" onclick="Auth.showTab(\'login\');return false;">Log in</a>';
+    $('auth-error').style.display = 'none';
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    const email    = $('auth-email').value.trim();
+    const password = $('auth-password').value;
+    const btn      = $('auth-submit');
+    btn.disabled   = true;
+    btn.textContent = '…';
+    $('auth-error').style.display = 'none';
+
+    try {
+      if (_tab === 'login') {
+        await fbAuth.signInWithEmailAndPassword(email, password);
+      } else {
+        await fbAuth.createUserWithEmailAndPassword(email, password);
+      }
+    } catch (err) {
+      const msgs = {
+        'auth/user-not-found':     'No account found with this email.',
+        'auth/wrong-password':     'Incorrect password.',
+        'auth/invalid-credential': 'Incorrect email or password.',
+        'auth/email-already-in-use': 'This email is already registered.',
+        'auth/weak-password':      'Password must be at least 6 characters.',
+        'auth/invalid-email':      'Please enter a valid email address.',
+        'auth/too-many-requests':  'Too many attempts. Please try again later.',
+      };
+      const el = $('auth-error');
+      el.textContent    = msgs[err.code] || 'Something went wrong. Please try again.';
+      el.style.display  = 'block';
+      btn.disabled      = false;
+      btn.textContent   = _tab === 'login' ? 'Log In' : 'Create Account';
+    }
+  }
+
+  async function logout() {
+    await fbAuth.signOut();
+  }
+
+  return { showTab, submit, logout };
+})();
+
+// ===== FIRESTORE HELPERS =====
+async function saveScan(result, band) {
+  const user = fbAuth.currentUser;
+  if (!user) return;
+  const status = $('save-status');
+  try {
+    await fbDb.collection('scans').add({
+      userId:     user.uid,
+      date:       firebase.firestore.FieldValue.serverTimestamp(),
+      score:      result.score,
+      band:       band.level,
+      bandLabel:  band.label,
+      coveragePct: result.coveragePct,
+      texturePct:  result.texturePct,
+      edgeDensity: result.edgeDensity,
+      stdDev:      result.stdDev,
+    });
+    if (status) { status.textContent = '✓ Saved to your history'; }
+  } catch (err) {
+    console.error('Save scan failed:', err);
+    if (status) { status.textContent = 'Could not save — check your connection.'; }
+  }
+}
+
+function formatDate(ts) {
+  const d = ts && ts.toDate ? ts.toDate() : new Date();
+  return d.toLocaleDateString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
 // ===== RESULT BANDS =====
 const RESULT_BANDS = [
   {
@@ -751,6 +851,63 @@ const App = (() => {
     });
 
     showScreen('screen-results');
+
+    // Auto-save to Firestore
+    const saveEl = $('save-status');
+    if (saveEl) saveEl.textContent = 'Saving…';
+    saveScan(result, band);
+  }
+
+  async function showHistory() {
+    showScreen('screen-history');
+    const list = $('history-list');
+    list.innerHTML = '<div class="history-loading">Loading&hellip;</div>';
+    const user = fbAuth.currentUser;
+    if (!user) { list.innerHTML = '<div class="history-error">Not logged in.</div>'; return; }
+
+    try {
+      const snap = await fbDb.collection('scans')
+        .where('userId', '==', user.uid)
+        .get();
+
+      const docs = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => {
+          const at = a.date ? a.date.toMillis() : 0;
+          const bt = b.date ? b.date.toMillis() : 0;
+          return bt - at;
+        });
+
+      if (docs.length === 0) {
+        list.innerHTML = '<div class="history-empty">No scans yet. <a href="#" onclick="App.start();return false;">Analyse your first photo</a></div>';
+        return;
+      }
+
+      list.innerHTML = '';
+      docs.forEach(d => {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.innerHTML = `
+          <div class="history-item-left">
+            <span class="history-badge badge-${d.band}">${d.bandLabel}</span>
+            <span class="history-date">${formatDate(d.date)}</span>
+          </div>
+          <div class="history-item-right">
+            <span class="history-score">${d.score}</span>
+            <span class="history-score-label">/ 100</span>
+          </div>
+          <div class="history-item-metrics">
+            <span>Coverage: ${d.coveragePct}%</span>
+            <span>Texture: ${d.texturePct}%</span>
+            <span>Edge: ${d.edgeDensity}</span>
+            <span>Variance: ${d.stdDev}</span>
+          </div>`;
+        list.appendChild(item);
+      });
+    } catch (err) {
+      list.innerHTML = '<div class="history-error">Failed to load history. Please try again.</div>';
+      console.error(err);
+    }
   }
 
   function resetUpload() {
@@ -764,7 +921,25 @@ const App = (() => {
   function restart() { Crop.destroy(); resetUpload(); showScreen('screen-intro'); }
   function print()   { window.print(); }
 
-  document.addEventListener('DOMContentLoaded', initUploadListeners);
+  document.addEventListener('DOMContentLoaded', () => {
+    initUploadListeners();
 
-  return { start, restart, print, confirmCrop, reupload };
+    // Auth state: gate all screens behind login
+    fbAuth.onAuthStateChanged(user => {
+      const headerUser = $('header-user');
+      const headerBadge = $('header-badge');
+      if (user) {
+        headerUser.style.display  = 'flex';
+        headerBadge.style.display = 'none';
+        $('user-email').textContent = user.email.split('@')[0];
+        showScreen('screen-intro');
+      } else {
+        headerUser.style.display  = 'none';
+        headerBadge.style.display = 'block';
+        showScreen('screen-auth');
+      }
+    });
+  });
+
+  return { start, restart, print, confirmCrop, reupload, showHistory };
 })();
