@@ -945,6 +945,7 @@ const App = (() => {
       docs.forEach(d => {
         const item = document.createElement('div');
         item.className = 'history-item';
+        item.dataset.id = d.id;
         item.innerHTML = `
           <div class="history-item-left">
             <span class="history-badge badge-${d.band}">${d.bandLabel}</span>
@@ -959,12 +960,33 @@ const App = (() => {
             <span>Texture: ${d.texturePct}%</span>
             <span>Edge: ${d.edgeDensity}</span>
             <span>Variance: ${d.stdDev}</span>
-          </div>`;
+          </div>
+          <button class="btn-delete-scan" onclick="App.deleteScan('${d.id}', this)" title="Delete this scan">&#128465;</button>`;
         list.appendChild(item);
       });
     } catch (err) {
       list.innerHTML = '<div class="history-error">Failed to load history. Please try again.</div>';
       console.error(err);
+    }
+  }
+
+  async function deleteScan(docId, btn) {
+    if (!confirm('Delete this scan?')) return;
+    btn.disabled = true;
+    btn.textContent = '…';
+    try {
+      await fbDb.collection('scans').doc(docId).delete();
+      const item = btn.closest('.history-item');
+      item.remove();
+      const list = $('history-list');
+      if (!list.querySelector('.history-item')) {
+        list.innerHTML = '<div class="history-empty">No scans yet. <a href="#" onclick="App.start();return false;">Analyse your first photo</a></div>';
+      }
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = '🗑';
+      console.error('Delete failed:', err);
+      alert('Could not delete scan. Please try again.');
     }
   }
 
@@ -999,5 +1021,5 @@ const App = (() => {
     });
   });
 
-  return { start, restart, print, confirmCrop, reupload, showHistory };
+  return { start, restart, print, confirmCrop, reupload, showHistory, deleteScan };
 })();
