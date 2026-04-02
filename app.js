@@ -108,11 +108,15 @@ const Auth = (() => {
       ok.style.display  = 'block';
     } catch (err) {
       const msgs = {
-        'auth/user-not-found': 'No account found with this email.',
-        'auth/invalid-email':  'Please enter a valid email address.',
+        'auth/user-not-found':         'No account found with this email.',
+        'auth/invalid-email':          'Please enter a valid email address.',
+        'auth/network-request-failed': 'Network error — check your connection and try again.',
+        'auth/too-many-requests':      'Too many attempts. Please wait a few minutes.',
+        'auth/unauthorized-domain':    'This domain is not authorised in Firebase. Contact the site owner.',
       };
+      console.error('Password reset error:', err.code, err.message);
       const el = $('auth-error');
-      el.textContent   = msgs[err.code] || 'Could not send reset email. Try again.';
+      el.textContent   = msgs[err.code] || `Could not send reset email (${err.code || 'unknown'}).`;
       el.style.display = 'block';
       btn.disabled     = false;
       btn.textContent  = 'Send Reset Link';
