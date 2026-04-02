@@ -96,7 +96,10 @@ const Auth = (() => {
     $('auth-error').style.display = 'none';
 
     try {
-      await fbAuth.sendPasswordResetEmail(email, { url: 'https://rakeshmathi.github.io' });
+      await fbAuth.sendPasswordResetEmail(email, {
+        url: 'https://rakeshmathi.github.io',
+        handleCodeInApp: true,
+      });
       $('forgot-form').style.display  = 'none';
       $('auth-tabs').style.display    = 'flex';
       $('auth-switch').style.display  = 'block';
@@ -124,11 +127,60 @@ const Auth = (() => {
     }
   }
 
+  async function confirmReset(e) {
+    e.preventDefault();
+    const pw1 = $('reset-password').value;
+    const pw2 = $('reset-password2').value;
+    const btn = $('reset-submit');
+    const errEl = $('reset-error');
+    const okEl  = $('reset-success');
+    errEl.style.display = 'none';
+    okEl.style.display  = 'none';
+    if (pw1 !== pw2) {
+      errEl.textContent   = 'Passwords do not match.';
+      errEl.style.display = 'block';
+      return;
+    }
+    btn.disabled    = true;
+    btn.textContent = '…';
+    const oobCode = new URLSearchParams(window.location.search).get('oobCode');
+    try {
+      await fbAuth.confirmPasswordReset(oobCode, pw1);
+      okEl.textContent   = '✓ Password changed! You can now log in.';
+      okEl.style.display = 'block';
+      $('reset-form').style.display = 'none';
+      setTimeout(() => {
+        window.history.replaceState({}, '', '/');
+        showScreen('screen-auth');
+        Auth.showTab('login');
+      }, 2000);
+    } catch (err) {
+      const msgs = {
+        'auth/expired-action-code': 'This reset link has expired. Please request a new one.',
+        'auth/invalid-action-code': 'This reset link is invalid or already used.',
+        'auth/weak-password':       'Password must be at least 6 characters.',
+      };
+      errEl.textContent   = msgs[err.code] || `Error: ${err.message}`;
+      errEl.style.display = 'block';
+      btn.disabled    = false;
+      btn.textContent = 'Save New Password';
+    }
+  }
+
+  function checkResetLink() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mode') === 'resetPassword' && params.get('oobCode')) {
+      showScreen('screen-reset');
+      return true;
+    }
+    return false;
+  }
+
   async function logout() {
     await fbAuth.signOut();
   }
 
-  return { showTab, submit, showForgot, sendReset, logout };
+  return { showTab, submit, showForgot, sendReset, confirmReset, checkResetLink, logout };
 })();
 
 // ===== FIRESTORE HELPERS =====
@@ -1025,6 +1077,9 @@ const App = (() => {
 
   document.addEventListener('DOMContentLoaded', () => {
     initUploadListeners();
+
+    // Handle password-reset links (?mode=resetPassword&oobCode=...)
+    if (Auth.checkResetLink()) return;
 
     // Auth state: gate all screens behind login
     fbAuth.onAuthStateChanged(user => {

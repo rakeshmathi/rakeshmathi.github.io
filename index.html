@@ -292,6 +292,34 @@
         </div>
       </section>
 
+      <!-- Password Reset Screen (handles ?mode=resetPassword links) -->
+      <section id="screen-reset" class="screen">
+        <div class="card auth-card">
+          <div class="auth-logo">
+            <svg width="48" height="48" viewBox="0 0 32 32" fill="none">
+              <circle cx="16" cy="16" r="16" fill="#4f46e5"/>
+              <path d="M10 24 Q10 10 16 8 Q22 10 22 24" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+              <path d="M13 24 Q13 13 16 11 Q19 13 19 24" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+              <path d="M16 24 L16 12" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            </svg>
+            <h1 class="auth-title">Set New Password</h1>
+          </div>
+          <div class="auth-error"   id="reset-error"   style="display:none"></div>
+          <div class="auth-success" id="reset-success" style="display:none"></div>
+          <form id="reset-form" onsubmit="Auth.confirmReset(event)">
+            <div class="form-group">
+              <label for="reset-password">New Password</label>
+              <input type="password" id="reset-password" required placeholder="Min. 6 characters" autocomplete="new-password" />
+            </div>
+            <div class="form-group">
+              <label for="reset-password2">Confirm Password</label>
+              <input type="password" id="reset-password2" required placeholder="Repeat new password" autocomplete="new-password" />
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" id="reset-submit">Save New Password</button>
+          </form>
+        </div>
+      </section>
+
       <!-- History Screen -->
       <section id="screen-history" class="screen">
         <div class="card history-card">
