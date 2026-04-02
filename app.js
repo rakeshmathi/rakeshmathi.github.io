@@ -879,17 +879,34 @@ const App = (() => {
     `;
 
     // Regional heatmap
+    const ZONE_LABELS = [
+      'Front-Left', 'Frontal', 'Front-Right',
+      'Left Side',  'Crown',   'Right Side',
+      'Back-Left',  'Back',    'Back-Right',
+    ];
     const rg   = $('region-grid');
     rg.innerHTML = '';
     const maxR = Math.max(...regionScores);
-    regionScores.forEach(rs => {
+    regionScores.forEach((rs, idx) => {
       const cell = document.createElement('div');
       cell.className = 'region-cell';
       const intensity = maxR > 0 ? rs / maxR : 0;
       cell.style.background = `rgba(79, 70, 229, ${(0.08 + intensity * 0.72).toFixed(2)})`;
-      cell.innerHTML = `<span class="region-pct">${rs}%</span>`;
+      cell.innerHTML = `<span class="region-pct">${rs}%</span><span class="region-label">${ZONE_LABELS[idx]}</span>`;
       rg.appendChild(cell);
     });
+
+    // Weakest zone callout
+    const minScore = Math.min(...regionScores);
+    const weakIdx  = regionScores.indexOf(minScore);
+    const weakZone = ZONE_LABELS[weakIdx];
+    const wz = $('weakest-zone');
+    if (minScore < 40) {
+      wz.style.display = 'flex';
+      wz.innerHTML = `<span class="wz-icon">⚠️</span><div><strong>Focus area: ${weakZone}</strong> — only ${minScore}% density detected. Consider targeting this zone in your next scan and consult a specialist if thinning persists.</div>`;
+    } else {
+      wz.style.display = 'none';
+    }
 
     // Recommendations
     $('recommendations-list').innerHTML = '';

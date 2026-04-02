@@ -131,6 +131,48 @@
             <div class="tip-item"><span>&#128269;</span><span>Sharp focus</span></div>
           </div>
 
+          <div class="zone-guide">
+            <p class="zone-guide-title">Which area should I photograph?</p>
+            <div class="zone-guide-inner">
+              <svg class="zone-svg" viewBox="0 0 160 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Head outline (top-down) -->
+                <ellipse cx="80" cy="88" rx="58" ry="72" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.5"/>
+                <!-- Zone overlays -->
+                <ellipse cx="80" cy="54" rx="32" ry="22" fill="#4f46e5" fill-opacity="0.12" stroke="#4f46e5" stroke-width="1" stroke-dasharray="3 2"/>
+                <ellipse cx="80" cy="88" rx="28" ry="24" fill="#4f46e5" fill-opacity="0.22" stroke="#4f46e5" stroke-width="1.5"/>
+                <ellipse cx="43" cy="86" rx="18" ry="22" fill="#4f46e5" fill-opacity="0.08" stroke="#4f46e5" stroke-width="1" stroke-dasharray="3 2"/>
+                <ellipse cx="117" cy="86" rx="18" ry="22" fill="#4f46e5" fill-opacity="0.08" stroke="#4f46e5" stroke-width="1" stroke-dasharray="3 2"/>
+                <!-- Crown label -->
+                <circle cx="80" cy="88" r="4" fill="#4f46e5"/>
+                <text x="80" y="108" text-anchor="middle" font-size="9" fill="#4f46e5" font-weight="700">CROWN</text>
+                <!-- Frontal label -->
+                <text x="80" y="44" text-anchor="middle" font-size="8" fill="#6d28d9">FRONTAL</text>
+                <!-- Temple labels -->
+                <text x="26" y="80" text-anchor="middle" font-size="7.5" fill="#7c3aed">LEFT</text>
+                <text x="26" y="90" text-anchor="middle" font-size="7.5" fill="#7c3aed">TEMPLE</text>
+                <text x="134" y="80" text-anchor="middle" font-size="7.5" fill="#7c3aed">RIGHT</text>
+                <text x="134" y="90" text-anchor="middle" font-size="7.5" fill="#7c3aed">TEMPLE</text>
+                <!-- Vertex arrow -->
+                <path d="M80 84 L75 74 M80 84 L85 74" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"/>
+                <!-- "You are here" camera icon -->
+                <circle cx="80" cy="18" r="9" fill="#4f46e5" fill-opacity="0.15" stroke="#4f46e5" stroke-width="1"/>
+                <text x="80" y="22" text-anchor="middle" font-size="11">📷</text>
+                <line x1="80" y1="28" x2="80" y2="38" stroke="#4f46e5" stroke-width="1.5" stroke-dasharray="2 2" marker-end="url(#arr)"/>
+                <defs>
+                  <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                    <path d="M0,0 L6,3 L0,6 Z" fill="#4f46e5"/>
+                  </marker>
+                </defs>
+              </svg>
+              <div class="zone-legend">
+                <div class="zone-leg-item zone-primary"><span class="zone-dot"></span><strong>Crown</strong> – most commonly affected; always include</div>
+                <div class="zone-leg-item"><span class="zone-dot zone-dot-light"></span><strong>Frontal/Hairline</strong> – receding hairline detection</div>
+                <div class="zone-leg-item"><span class="zone-dot zone-dot-lighter"></span><strong>Temples</strong> – early thinning often starts here</div>
+                <div class="zone-leg-tip">Hold camera <strong>directly overhead</strong>, 20–30 cm above the scalp, with hair parted down the middle.</div>
+              </div>
+            </div>
+          </div>
+
           <div class="upload-zone" id="upload-zone">
             <input type="file" id="file-input" accept="image/*" style="display:none" />
             <div class="upload-zone-inner">
@@ -223,6 +265,7 @@
             <h3>Regional Density Map</h3>
             <p class="region-desc">Your scalp divided into 9 zones — darker colour = denser hair coverage.</p>
             <div class="region-grid" id="region-grid"></div>
+            <div class="weakest-zone" id="weakest-zone" style="display:none"></div>
           </div>
 
           <div class="results-grid">

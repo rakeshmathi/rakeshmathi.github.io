@@ -651,11 +651,74 @@ body {
   aspect-ratio: 1;
   border-radius: 8px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
   transition: background 0.5s ease;
+  padding: 4px;
 }
-.region-pct { font-size: 0.8rem; font-weight: 700; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+.region-pct   { font-size: 0.8rem; font-weight: 700; color: white; text-shadow: 0 1px 3px rgba(0,0,0,0.4); line-height: 1; }
+.region-label { font-size: 0.6rem; color: rgba(255,255,255,0.85); text-shadow: 0 1px 2px rgba(0,0,0,0.35); text-align: center; line-height: 1.2; }
+
+/* Weakest zone callout */
+.weakest-zone {
+  margin-top: 12px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: #92400e;
+  gap: 10px;
+  align-items: flex-start;
+}
+.wz-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+
+/* Zone guide on upload screen */
+.zone-guide {
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  background: var(--gray-50);
+  margin-bottom: 4px;
+}
+.zone-guide-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  margin-bottom: 10px;
+  text-align: center;
+}
+.zone-guide-inner {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.zone-svg { width: 120px; flex-shrink: 0; }
+.zone-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 0.78rem;
+  color: var(--gray-600);
+}
+.zone-leg-item { display: flex; align-items: flex-start; gap: 7px; line-height: 1.3; }
+.zone-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(79,70,229,0.5); flex-shrink: 0; margin-top: 2px;
+}
+.zone-dot-light   { background: rgba(79,70,229,0.25); }
+.zone-dot-lighter { background: rgba(79,70,229,0.12); }
+.zone-primary .zone-dot { background: #4f46e5; }
+.zone-leg-tip {
+  margin-top: 4px;
+  font-size: 0.74rem;
+  color: var(--gray-500);
+  border-top: 1px solid var(--gray-200);
+  padding-top: 6px;
+  line-height: 1.4;
+}
 
 /* Results Grid */
 .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
