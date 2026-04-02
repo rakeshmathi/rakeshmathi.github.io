@@ -96,7 +96,7 @@ const Auth = (() => {
     $('auth-error').style.display = 'none';
 
     try {
-      await fbAuth.sendPasswordResetEmail(email);
+      await fbAuth.sendPasswordResetEmail(email, { url: 'https://rakeshmathi.github.io' });
       $('forgot-form').style.display  = 'none';
       $('auth-tabs').style.display    = 'flex';
       $('auth-switch').style.display  = 'block';
