@@ -114,9 +114,10 @@ const Auth = (() => {
         'auth/too-many-requests':      'Too many attempts. Please wait a few minutes.',
         'auth/unauthorized-domain':    'This domain is not authorised in Firebase. Contact the site owner.',
       };
-      console.error('Password reset error:', err.code, err.message);
+      console.error('Password reset error:', err);
       const el = $('auth-error');
-      el.textContent   = msgs[err.code] || `Could not send reset email (${err.code || 'unknown'}).`;
+      const detail = err?.message || String(err) || 'no details';
+      el.textContent   = msgs[err?.code] || `Error: ${detail}`;
       el.style.display = 'block';
       btn.disabled     = false;
       btn.textContent  = 'Send Reset Link';
