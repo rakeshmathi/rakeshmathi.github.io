@@ -72,13 +72,16 @@
 
           <!-- Forgot password form (hidden by default) -->
           <form id="forgot-form" onsubmit="Auth.sendReset(event)" style="display:none">
+            <div class="forgot-header">
+              <button type="button" class="btn-back-login" onclick="Auth.showTab('login')">&#8592; Back to Login</button>
+              <strong>Reset Password</strong>
+            </div>
             <p class="forgot-desc">Enter your email address and we&apos;ll send you a link to reset your password.</p>
             <div class="form-group">
               <label for="forgot-email">Email</label>
               <input type="email" id="forgot-email" required placeholder="you@example.com" autocomplete="email" />
             </div>
             <button type="submit" class="btn btn-primary btn-full" id="forgot-submit">Send Reset Link</button>
-            <button type="button" class="btn btn-ghost btn-full" onclick="Auth.showTab('login')" style="margin-top:8px">&#8592; Back to Login</button>
           </form>
 
           <p class="auth-switch" id="auth-switch">

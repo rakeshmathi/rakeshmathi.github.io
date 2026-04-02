@@ -306,6 +306,23 @@ body {
 
 .forgot-link:hover { text-decoration: underline; }
 
+.forgot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+.btn-back-login {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 4px 0;
+}
+.btn-back-login:hover { text-decoration: underline; }
+
 .forgot-desc {
   font-size: 0.88rem;
   color: var(--gray-500);
