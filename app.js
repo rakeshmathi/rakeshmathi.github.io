@@ -1076,14 +1076,19 @@ const App = (() => {
   let _facingMode = 'environment'; // rear camera by default
 
   async function openCamera() {
-    const overlay = $('camera-overlay');
-    const video   = $('camera-video');
+    const overlay  = $('camera-overlay');
+    const video    = $('camera-video');
+    const flipBtn  = $('flip-btn');
     try {
       _stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: _facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
       });
       video.srcObject = _stream;
+      // Show flip button only if device has more than one camera
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cameras = devices.filter(d => d.kind === 'videoinput');
+      flipBtn.style.display = cameras.length > 1 ? 'inline-flex' : 'none';
       overlay.style.display = 'flex';
     } catch (err) {
       alert('Could not access camera. Please allow camera permission and try again.');
