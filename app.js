@@ -16,31 +16,129 @@ const fbDb   = firebase.firestore();
 // ===== AUTH MODULE =====
 const Auth = (() => {
   let _tab = 'login';
+  let _confirmationResult = null;
+  let _recaptchaVerifier  = null;
+  let _lastPhone = '';
+
+  function _hideAllForms() {
+    ['auth-form','forgot-form','phone-form','otp-form'].forEach(id => {
+      const el = $(id); if (el) el.style.display = 'none';
+    });
+    $('auth-switch').style.display = 'none';
+    $('auth-error').style.display  = 'none';
+    $('auth-success').style.display = 'none';
+  }
 
   function showTab(tab) {
     _tab = tab;
-    // Restore main form in case forgot-password view was shown
-    $('auth-form').style.display   = 'flex';
-    $('auth-form').style.flexDirection = 'column';
-    $('auth-form').style.gap       = '14px';
-    $('forgot-form').style.display = 'none';
-    $('auth-tabs').style.display   = 'flex';
-    $('auth-switch').style.display = 'block';
+    _hideAllForms();
+    $('auth-tabs').style.display = 'flex';
 
     $('tab-login') .classList.toggle('active', tab === 'login');
     $('tab-signup').classList.toggle('active', tab === 'signup');
-    $('auth-submit').textContent = tab === 'login' ? 'Log In' : 'Create Account';
-    $('auth-switch').innerHTML = tab === 'login'
-      ? 'Don\'t have an account? <a href="#" onclick="Auth.showTab(\'signup\');return false;">Sign up</a>'
-      : 'Already have an account? <a href="#" onclick="Auth.showTab(\'login\');return false;">Log in</a>';
+    $('tab-phone') .classList.toggle('active', tab === 'phone');
 
-    // Show forgot link only on login tab
-    const fl = $('forgot-link');
-    if (fl) fl.style.display = tab === 'login' ? 'inline' : 'none';
+    if (tab === 'phone') {
+      $('phone-form').style.display = 'flex';
+      $('phone-form').style.flexDirection = 'column';
+      $('phone-form').style.gap = '14px';
+    } else {
+      $('auth-form').style.display = 'flex';
+      $('auth-form').style.flexDirection = 'column';
+      $('auth-form').style.gap = '14px';
+      $('auth-switch').style.display = 'block';
+      $('auth-submit').textContent = tab === 'login' ? 'Log In' : 'Create Account';
+      $('auth-switch').innerHTML = tab === 'login'
+        ? 'Don\'t have an account? <a href="#" onclick="Auth.showTab(\'signup\');return false;">Sign up</a>'
+        : 'Already have an account? <a href="#" onclick="Auth.showTab(\'login\');return false;">Log in</a>';
+      const fl = $('forgot-link');
+      if (fl) fl.style.display = tab === 'login' ? 'inline' : 'none';
+      $('auth-password').required = true;
+    }
+  }
 
-    $('auth-error').style.display   = 'none';
-    $('auth-success').style.display = 'none';
-    $('auth-password').required     = tab !== 'forgot';
+  function showPhoneForm() {
+    _hideAllForms();
+    $('auth-tabs').style.display = 'flex';
+    $('tab-phone').classList.add('active');
+    $('tab-login').classList.remove('active');
+    $('tab-signup').classList.remove('active');
+    $('phone-form').style.display = 'flex';
+    $('phone-form').style.flexDirection = 'column';
+    $('phone-form').style.gap = '14px';
+  }
+
+  function _initRecaptcha() {
+    if (_recaptchaVerifier) return;
+    _recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+      size: 'invisible',
+      callback: () => {},
+    });
+  }
+
+  async function sendOtp(e) {
+    e.preventDefault();
+    const cc    = $('phone-cc').value;
+    const num   = $('phone-number').value.trim().replace(/\D/g, '');
+    const phone = cc + num;
+    const btn   = $('phone-submit');
+    const errEl = $('auth-error');
+    errEl.style.display = 'none';
+    btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      _initRecaptcha();
+      _confirmationResult = await fbAuth.signInWithPhoneNumber(phone, _recaptchaVerifier);
+      _lastPhone = phone;
+      // Show OTP form
+      _hideAllForms();
+      $('auth-tabs').style.display = 'flex';
+      $('otp-form').style.display = 'flex';
+      $('otp-form').style.flexDirection = 'column';
+      $('otp-form').style.gap = '14px';
+      $('otp-desc').textContent = `Enter the 6-digit code sent to ${phone}.`;
+      $('otp-code').value = '';
+      $('otp-code').focus();
+    } catch (err) {
+      console.error('OTP send error:', err);
+      const msgs = {
+        'auth/invalid-phone-number': 'Invalid phone number. Include country code.',
+        'auth/too-many-requests':    'Too many attempts. Please wait and try again.',
+        'auth/captcha-check-failed': 'reCAPTCHA failed. Please refresh and try again.',
+      };
+      errEl.textContent   = msgs[err.code] || `Error: ${err.message}`;
+      errEl.style.display = 'block';
+      // Reset recaptcha so it can be retried
+      if (_recaptchaVerifier) { _recaptchaVerifier.clear(); _recaptchaVerifier = null; }
+    } finally {
+      btn.disabled = false; btn.textContent = 'Send OTP';
+    }
+  }
+
+  async function sendOtpAgain() {
+    showPhoneForm();
+    if (_recaptchaVerifier) { _recaptchaVerifier.clear(); _recaptchaVerifier = null; }
+  }
+
+  async function verifyOtp(e) {
+    e.preventDefault();
+    const code  = $('otp-code').value.trim();
+    const btn   = $('otp-submit');
+    const errEl = $('auth-error');
+    errEl.style.display = 'none';
+    btn.disabled = true; btn.textContent = 'Verifying…';
+    try {
+      await _confirmationResult.confirm(code);
+      // onAuthStateChanged will handle navigation
+    } catch (err) {
+      console.error('OTP verify error:', err);
+      const msgs = {
+        'auth/invalid-verification-code': 'Incorrect OTP. Please try again.',
+        'auth/code-expired':              'OTP has expired. Please request a new one.',
+      };
+      errEl.textContent   = msgs[err.code] || `Error: ${err.message}`;
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Verify & Sign In';
+    }
   }
 
   async function submit(e) {
@@ -180,7 +278,7 @@ const Auth = (() => {
     await fbAuth.signOut();
   }
 
-  return { showTab, submit, showForgot, sendReset, confirmReset, checkResetLink, logout };
+  return { showTab, submit, showForgot, sendReset, confirmReset, checkResetLink, showPhoneForm, sendOtp, sendOtpAgain, verifyOtp, logout };
 })();
 
 // ===== FIRESTORE HELPERS =====

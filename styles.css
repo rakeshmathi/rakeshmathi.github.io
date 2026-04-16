@@ -306,6 +306,28 @@ body {
 
 .forgot-link:hover { text-decoration: underline; }
 
+/* Phone number input */
+.phone-input-row {
+  display: flex;
+  gap: 8px;
+}
+.phone-cc {
+  width: 110px;
+  flex-shrink: 0;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-sm);
+  padding: 10px 8px;
+  font-size: 0.9rem;
+  background: #fff;
+  cursor: pointer;
+}
+.otp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
 .forgot-header {
   display: flex;
   align-items: center;

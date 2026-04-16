@@ -49,6 +49,7 @@
           <div class="auth-tabs" id="auth-tabs">
             <button class="auth-tab active" id="tab-login"  onclick="Auth.showTab('login')">Log In</button>
             <button class="auth-tab"        id="tab-signup" onclick="Auth.showTab('signup')">Sign Up</button>
+            <button class="auth-tab"        id="tab-phone"  onclick="Auth.showTab('phone')">&#128241; Phone</button>
           </div>
 
           <div class="auth-error"   id="auth-error"   style="display:none"></div>
@@ -68,6 +69,46 @@
               <input type="password" id="auth-password" required placeholder="Min. 6 characters" autocomplete="current-password" />
             </div>
             <button type="submit" class="btn btn-primary btn-full" id="auth-submit">Log In</button>
+          </form>
+
+          <!-- Phone OTP: step 1 — enter number -->
+          <form id="phone-form" onsubmit="Auth.sendOtp(event)" style="display:none">
+            <div class="form-group">
+              <label for="phone-number">Phone Number</label>
+              <div class="phone-input-row">
+                <select id="phone-cc" class="phone-cc">
+                  <option value="+1">🇺🇸 +1</option>
+                  <option value="+44">🇬🇧 +44</option>
+                  <option value="+91" selected>🇮🇳 +91</option>
+                  <option value="+61">🇦🇺 +61</option>
+                  <option value="+81">🇯🇵 +81</option>
+                  <option value="+49">🇩🇪 +49</option>
+                  <option value="+33">🇫🇷 +33</option>
+                  <option value="+971">🇦🇪 +971</option>
+                  <option value="+65">🇸🇬 +65</option>
+                  <option value="+60">🇲🇾 +60</option>
+                </select>
+                <input type="tel" id="phone-number" required placeholder="9876543210" autocomplete="tel" />
+              </div>
+            </div>
+            <div id="recaptcha-container"></div>
+            <button type="submit" class="btn btn-primary btn-full" id="phone-submit">Send OTP</button>
+            <button type="button" class="btn btn-ghost btn-full" onclick="Auth.showTab('login')" style="margin-top:6px">&#8592; Back to Login</button>
+          </form>
+
+          <!-- Phone OTP: step 2 — enter code -->
+          <form id="otp-form" onsubmit="Auth.verifyOtp(event)" style="display:none">
+            <div class="otp-header">
+              <button type="button" class="btn-back-login" onclick="Auth.showPhoneForm()">&#8592; Change number</button>
+              <strong>Enter OTP</strong>
+            </div>
+            <p class="forgot-desc" id="otp-desc">Enter the 6-digit code sent to your phone.</p>
+            <div class="form-group">
+              <label for="otp-code">OTP Code</label>
+              <input type="number" id="otp-code" required placeholder="123456" maxlength="6" autocomplete="one-time-code" inputmode="numeric" />
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" id="otp-submit">Verify &amp; Sign In</button>
+            <button type="button" class="btn btn-ghost btn-full" onclick="Auth.sendOtpAgain()" style="margin-top:6px">Resend OTP</button>
           </form>
 
           <!-- Forgot password form (hidden by default) -->
