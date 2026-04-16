@@ -188,10 +188,25 @@
               </div>
               <p class="upload-label">Drag &amp; drop your photo here</p>
               <p class="upload-sub">or</p>
-              <button class="btn btn-outline" onclick="document.getElementById('file-input').click()">Browse File</button>
+              <div class="upload-btns">
+                <button class="btn btn-outline" onclick="document.getElementById('file-input').click()">&#128193; Browse File</button>
+                <button class="btn btn-primary" onclick="App.openCamera()">&#128247; Use Camera</button>
+              </div>
               <p class="upload-formats">JPG &middot; PNG &middot; WEBP &mdash; up to 20 MB</p>
             </div>
           </div>
+
+          <!-- Camera capture overlay -->
+          <div id="camera-overlay" style="display:none" class="camera-overlay">
+            <video id="camera-video" autoplay playsinline muted></video>
+            <div class="camera-guide-ring"></div>
+            <div class="camera-actions">
+              <button class="btn btn-ghost" onclick="App.closeCamera()">&#10005; Cancel</button>
+              <button class="btn btn-capture" onclick="App.capturePhoto()" id="capture-btn">&#9711; Capture</button>
+              <button class="btn btn-ghost" onclick="App.switchCamera()">&#8635; Flip</button>
+            </div>
+          </div>
+          <canvas id="camera-canvas" style="display:none"></canvas>
 
           <div id="analysing-state" style="display:none" class="analysing-state">
             <div class="spinner-ring"></div>

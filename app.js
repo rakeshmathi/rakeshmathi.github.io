@@ -1071,8 +1071,53 @@ const App = (() => {
     document.querySelectorAll('.a-step').forEach(s => s.classList.remove('active', 'done'));
   }
 
+  // ── Camera capture ──────────────────────────────────────────────
+  let _stream = null;
+  let _facingMode = 'environment'; // rear camera by default
+
+  async function openCamera() {
+    const overlay = $('camera-overlay');
+    const video   = $('camera-video');
+    try {
+      _stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: _facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false,
+      });
+      video.srcObject = _stream;
+      overlay.style.display = 'flex';
+    } catch (err) {
+      alert('Could not access camera. Please allow camera permission and try again.');
+      console.error(err);
+    }
+  }
+
+  function closeCamera() {
+    if (_stream) { _stream.getTracks().forEach(t => t.stop()); _stream = null; }
+    $('camera-overlay').style.display = 'none';
+  }
+
+  async function switchCamera() {
+    _facingMode = _facingMode === 'environment' ? 'user' : 'environment';
+    closeCamera();
+    await openCamera();
+  }
+
+  function capturePhoto() {
+    const video  = $('camera-video');
+    const canvas = $('camera-canvas');
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    closeCamera();
+    canvas.toBlob(blob => {
+      const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' });
+      handleFile(file);
+    }, 'image/jpeg', 0.95);
+  }
+  // ────────────────────────────────────────────────────────────────
+
   function start()   { showScreen('screen-upload'); }
-  function restart() { Crop.destroy(); resetUpload(); showScreen('screen-intro'); }
+  function restart() { Crop.destroy(); closeCamera(); resetUpload(); showScreen('screen-intro'); }
   function print()   { window.print(); }
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -1098,5 +1143,5 @@ const App = (() => {
     });
   });
 
-  return { start, restart, print, confirmCrop, reupload, showHistory, deleteScan };
+  return { start, restart, print, confirmCrop, reupload, showHistory, deleteScan, openCamera, closeCamera, switchCamera, capturePhoto };
 })();
