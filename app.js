@@ -926,6 +926,54 @@ const App = (() => {
     });
   }
 
+  // ── Scalp image validator ────────────────────────────────────────
+  function validateScalpImage(img) {
+    // Downsample to 120×120 for fast pixel analysis
+    const SIZE = 120;
+    const vc = document.createElement('canvas');
+    vc.width = vc.height = SIZE;
+    const vx = vc.getContext('2d');
+    vx.drawImage(img, 0, 0, SIZE, SIZE);
+    const { data } = vx.getImageData(0, 0, SIZE, SIZE);
+
+    let skin = 0, hair = 0, vivid = 0, green = 0, total = 0;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i], g = data[i+1], b = data[i+2];
+      const [h, s, l] = rgbToHsl(r, g, b);
+      total++;
+
+      const warmHue = h <= 70 || h >= 320;
+
+      if (warmHue && s >= 5 && s <= 88 && l >= 22 && l <= 88) {
+        skin++;
+      } else if (l < 42 && s < 55) {
+        hair++;
+      } else if (h >= 80 && h <= 160 && s > 30 && l > 20) {
+        green++; // plants / leaves / grass
+      } else if (s > 55 && l > 25) {
+        vivid++; // bright saturated colors — flowers, objects
+      }
+    }
+
+    const skinR  = skin  / total;
+    const hairR  = hair  / total;
+    const vividR = vivid / total;
+    const greenR = green / total;
+
+    // Clear pass: meaningful skin or skin+hair coverage
+    if (skinR >= 0.10) return { ok: true };
+    if (skinR + hairR >= 0.22 && vividR < 0.18) return { ok: true };
+
+    // Clear fail: dominated by vivid non-skin color or green
+    if (vividR > 0.38 && skinR < 0.04) return { ok: false, reason: 'This looks like it might not be a scalp photo. Please upload a close-up photo of your scalp.' };
+    if (greenR > 0.40 && skinR < 0.04) return { ok: false, reason: 'No scalp detected. Please upload a close-up photo of your scalp with hair parted.' };
+
+    // Borderline — allow but warn
+    return { ok: true, warn: true };
+  }
+  // ─────────────────────────────────────────────────────────────────
+
   function handleFile(file) {
     if (file.size > 20 * 1024 * 1024) {
       alert('File too large. Please upload an image under 20 MB.');
@@ -937,10 +985,21 @@ const App = (() => {
 
     img.onload = () => {
       URL.revokeObjectURL(url);
-      // Show crop screen
+
+      const check = validateScalpImage(img);
+      if (!check.ok) {
+        showUploadError(check.reason);
+        return;
+      }
+
+      if (check.warn) {
+        showUploadError('We couldn\'t confirm this is a scalp photo. For best results, use a close-up photo of your scalp with hair parted.', true);
+      } else {
+        clearUploadError();
+      }
+
       Crop.destroy();
       showScreen('screen-crop');
-      // Small delay ensures the screen is visible and layout is settled
       setTimeout(() => Crop.init(img), 60);
     };
 
@@ -949,6 +1008,23 @@ const App = (() => {
     };
 
     img.src = url;
+  }
+
+  function showUploadError(msg, soft = false) {
+    let el = $('upload-error');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'upload-error';
+      $('upload-zone').insertAdjacentElement('afterend', el);
+    }
+    el.className = soft ? 'upload-error upload-warn' : 'upload-error';
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function clearUploadError() {
+    const el = $('upload-error');
+    if (el) el.style.display = 'none';
   }
 
   function runAnalysisOnCanvas(cropped) {
@@ -1166,6 +1242,7 @@ const App = (() => {
     $('upload-zone').style.display     = 'block';
     $('analysing-state').style.display = 'none';
     $('file-input').value              = '';
+    clearUploadError();
     document.querySelectorAll('.a-step').forEach(s => s.classList.remove('active', 'done'));
   }
 

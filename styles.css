@@ -159,6 +159,22 @@ body {
   cursor: pointer;
 }
 .upload-zone.dragover { border-color: var(--primary); background: var(--primary-subtle); }
+
+.upload-error {
+  margin-top: 10px;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+  font-size: 0.85rem;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  display: none;
+}
+.upload-error.upload-warn {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+}
 .upload-zone-inner {
   padding: 36px 24px;
   display: flex;
