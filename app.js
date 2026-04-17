@@ -486,24 +486,35 @@ function classifyPixel(r, g, b) {
 // can't artificially expand the valid-hair zone into furniture or background.
 function removeSkinDistantHair(cls, width, height, radius) {
   const n = width * height;
-  const cx = width * 0.5, cy = height * 0.5;
-  // Max seed radius: 45% of the shorter dimension — keeps seed inside the head area
-  const maxSeedDist = Math.min(width, height) * 0.45;
+  const icx = width * 0.5, icy = height * 0.5;
 
-  // Build skin seed: only skin pixels near the image centre
+  // Pass 1: find centroid of skin pixels within 38% of image centre
+  const pass1R = Math.min(width, height) * 0.38;
+  let sumX = 0, sumY = 0, skinN = 0;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (cls[y * width + x] !== 1) continue;
+      const dx = x - icx, dy = y - icy;
+      if (dx * dx + dy * dy <= pass1R * pass1R) { sumX += x; sumY += y; skinN++; }
+    }
+  }
+  const cx = skinN > 0 ? sumX / skinN : icx;
+  const cy = skinN > 0 ? sumY / skinN : icy;
+
+  // Pass 2: seed only from skin pixels within 28% of that centroid
+  const seedR = Math.min(width, height) * 0.28;
   const skin = new Uint8Array(n);
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = y * width + x;
       if (cls[i] !== 1) continue;
       const dx = x - cx, dy = y - cy;
-      if (Math.sqrt(dx * dx + dy * dy) <= maxSeedDist) skin[i] = 1;
+      if (dx * dx + dy * dy <= seedR * seedR) skin[i] = 1;
     }
   }
 
-  // If no central skin found (unusual crop), fall back to all skin pixels
-  const hasCentralSkin = skin.some(v => v === 1);
-  if (!hasCentralSkin) {
+  // Fallback: if centroid found nothing, use all skin pixels
+  if (!skin.some(v => v === 1)) {
     for (let i = 0; i < n; i++) skin[i] = cls[i] === 1 ? 1 : 0;
   }
 
@@ -875,8 +886,8 @@ const Crop = (() => {
     _dH    = ch;
     _scale = cw / img.naturalWidth;
 
-    // Default selection: centre 75%
-    const pad = 0.125;
+    // Default selection: centre 55% — forces user to crop out shoulders/background
+    const pad = 0.225;
     _crop = {
       x: Math.round(cw * pad),
       y: Math.round(ch * pad),
