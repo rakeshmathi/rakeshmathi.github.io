@@ -3,7 +3,7 @@
 // ===== GEMINI CONFIG =====
 // Get a free key at https://aistudio.google.com/app/apikey
 // Restrict it to HTTP referrer: rakeshmathi.github.io/*
-const GEMINI_API_KEY = 'AIzaSyAWD4VlIAjjcan4Xf7RPI_-ss5v10EzSlU';
+const GEMINI_API_KEY = '__GEMINI_API_KEY__';
 
 // ===== FIREBASE =====
 const firebaseConfig = {
