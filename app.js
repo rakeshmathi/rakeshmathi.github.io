@@ -481,43 +481,59 @@ function classifyPixel(r, g, b) {
   return 0; // background / clothing — ignored
 }
 
-// Separable box-filter dilation: expands skin (cls=1) region by `radius` pixels.
-// Any hair pixel (cls=2) that falls outside the dilated skin zone is reclassified
-// as background (0), removing dark-background blobs isolated from the scalp.
+/// Separable box-filter dilation using only the central skin cluster as seed.
+// Carpet/background warm pixels at the edges are excluded from the seed so they
+// can't artificially expand the valid-hair zone into furniture or background.
 function removeSkinDistantHair(cls, width, height, radius) {
   const n = width * height;
+  const cx = width * 0.5, cy = height * 0.5;
+  // Max seed radius: 45% of the shorter dimension — keeps seed inside the head area
+  const maxSeedDist = Math.min(width, height) * 0.45;
 
-  // Build binary skin mask
+  // Build skin seed: only skin pixels near the image centre
   const skin = new Uint8Array(n);
-  for (let i = 0; i < n; i++) skin[i] = cls[i] === 1 ? 1 : 0;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      if (cls[i] !== 1) continue;
+      const dx = x - cx, dy = y - cy;
+      if (Math.sqrt(dx * dx + dy * dy) <= maxSeedDist) skin[i] = 1;
+    }
+  }
 
-  // Horizontal pass
+  // If no central skin found (unusual crop), fall back to all skin pixels
+  const hasCentralSkin = skin.some(v => v === 1);
+  if (!hasCentralSkin) {
+    for (let i = 0; i < n; i++) skin[i] = cls[i] === 1 ? 1 : 0;
+  }
+
+  // Horizontal dilation pass
   const hBlur = new Uint8Array(n);
   for (let y = 0; y < height; y++) {
     let sum = 0;
     for (let x = 0; x < Math.min(radius, width); x++) sum += skin[y * width + x];
     for (let x = 0; x < width; x++) {
-      if (x + radius < width)     sum += skin[y * width + x + radius];
-      if (x - radius - 1 >= 0)    sum -= skin[y * width + x - radius - 1];
+      if (x + radius < width)  sum += skin[y * width + x + radius];
+      if (x - radius - 1 >= 0) sum -= skin[y * width + x - radius - 1];
       hBlur[y * width + x] = sum > 0 ? 1 : 0;
     }
   }
 
-  // Vertical pass
+  // Vertical dilation pass
   const nearSkin = new Uint8Array(n);
   for (let x = 0; x < width; x++) {
     let sum = 0;
     for (let y = 0; y < Math.min(radius, height); y++) sum += hBlur[y * width + x];
     for (let y = 0; y < height; y++) {
-      if (y + radius < height)    sum += hBlur[(y + radius) * width + x];
-      if (y - radius - 1 >= 0)    sum -= hBlur[(y - radius - 1) * width + x];
+      if (y + radius < height)  sum += hBlur[(y + radius) * width + x];
+      if (y - radius - 1 >= 0)  sum -= hBlur[(y - radius - 1) * width + x];
       nearSkin[y * width + x] = sum > 0 ? 1 : 0;
     }
   }
 
-  // Strip hair pixels that are not near any skin pixel
+  // Strip hair and stray skin pixels outside the dilated central zone
   for (let i = 0; i < n; i++) {
-    if (cls[i] === 2 && !nearSkin[i]) cls[i] = 0;
+    if (!nearSkin[i]) cls[i] = 0;
   }
 }
 
@@ -540,7 +556,7 @@ function analyseImageData(imageData) {
   //    Radius 12px: real hair strands adjacent to scalp survive; wall texture and
   //    background blobs further than 12px from any skin pixel are reclassified as 0.
   if (skinCount > n * 0.02) {
-    removeSkinDistantHair(cls, width, height, 12);
+    removeSkinDistantHair(cls, width, height, 28);
     // Recount after filtering
     skinCount = 0; hairCount = 0;
     for (let i = 0; i < n; i++) {
