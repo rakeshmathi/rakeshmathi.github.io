@@ -958,7 +958,12 @@ const App = (() => {
     };
     const res  = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const json = await res.json();
+    if (!res.ok || json.error) {
+      console.warn('Gemini API error:', json.error || res.status);
+      return { ok: true }; // API error — allow through rather than blocking
+    }
     const answer = json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().toLowerCase() || '';
+    if (!answer) return { ok: true }; // empty response — allow through
     return answer.startsWith('yes') ? { ok: true } : { ok: false };
   }
   // ────────────────────────────────────────────────────────────────
