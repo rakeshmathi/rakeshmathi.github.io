@@ -958,6 +958,25 @@ const App = (() => {
     });
   }
 
+  // ── Heuristic fallback: pixel-based skin/hair ratio check ───────
+  function heuristicScalpCheck(img) {
+    const SIZE = 120;
+    const vc = document.createElement('canvas');
+    vc.width = vc.height = SIZE;
+    vc.getContext('2d').drawImage(img, 0, 0, SIZE, SIZE);
+    const { data } = vc.getContext('2d').getImageData(0, 0, SIZE, SIZE);
+    let skin = 0, hair = 0, total = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const [h, s, l] = rgbToHsl(data[i], data[i+1], data[i+2]);
+      total++;
+      const warm = h <= 70 || h >= 320;
+      if (warm && s >= 5 && s <= 88 && l >= 22 && l <= 88) skin++;
+      else if (l < 42 && s < 55) hair++;
+    }
+    return (skin + hair) / total >= 0.18;
+  }
+  // ────────────────────────────────────────────────────────────────
+
   // ── AI image validator (Gemini Flash) ───────────────────────────
   function imgToBase64(img, maxSize = 512) {
     const vc = document.createElement('canvas');
@@ -968,29 +987,32 @@ const App = (() => {
     return vc.toDataURL('image/jpeg', 0.8).split(',')[1];
   }
 
-  async function validateWithGemini(img) {
-    if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY_HERE') {
-      return { ok: true }; // skip validation if key not configured
+  async function validateImage(img) {
+    if (GEMINI_API_KEY && GEMINI_API_KEY !== 'YOUR_GEMINI_API_KEY_HERE') {
+      try {
+        const base64 = imgToBase64(img);
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+        const body = {
+          contents: [{ parts: [
+            { text: 'Does this image show a human head, scalp, or hair? Reply with only "yes" or "no".' },
+            { inline_data: { mime_type: 'image/jpeg', data: base64 } },
+          ]}],
+          generationConfig: { maxOutputTokens: 4, temperature: 0 },
+        };
+        const res  = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const json = await res.json();
+        if (res.ok && !json.error) {
+          const answer = json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().toLowerCase() || '';
+          if (answer) return { ok: answer.startsWith('yes'), source: 'gemini', answer };
+        }
+        console.warn('Gemini unavailable, falling back to heuristic. Status:', res.status, json.error?.message);
+      } catch (err) {
+        console.warn('Gemini error, falling back to heuristic:', err.message);
+      }
     }
-    const base64 = imgToBase64(img);
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-    const body = {
-      contents: [{
-        parts: [
-          { text: 'Look at this image carefully. Does it show a human head, scalp, or hair (a close-up photo taken from above or the side of a person\'s head)? Reply with exactly one word: "yes" or "no".' },
-          { inline_data: { mime_type: 'image/jpeg', data: base64 } },
-        ],
-      }],
-      generationConfig: { maxOutputTokens: 4, temperature: 0 },
-    };
-    const res  = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const json = await res.json();
-    if (!res.ok || json.error) {
-      return { ok: true, debug: `API error ${res.status}: ${json.error?.message || JSON.stringify(json.error)}` };
-    }
-    const answer = json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().toLowerCase() || '';
-    if (!answer) return { ok: true, debug: 'Empty answer from Gemini' };
-    return { ok: answer.startsWith('yes'), debug: `Gemini answered: "${answer}"` };
+    // Fallback: pixel heuristic
+    const ok = heuristicScalpCheck(img);
+    return { ok, source: 'heuristic' };
   }
   // ────────────────────────────────────────────────────────────────
 
@@ -1006,22 +1028,17 @@ const App = (() => {
     img.onload = async () => {
       URL.revokeObjectURL(url);
       clearUploadError();
-
-      // Show checking state
       showUploadError('🔍 Checking image…', true);
 
-      let valid = true;
       try {
-        const check = await validateWithGemini(img);
+        const check = await validateImage(img);
         if (!check.ok) {
-          showUploadError(`⚠️ No human head or scalp detected. [${check.debug || ''}]`);
+          showUploadError('⚠️ No human head or scalp detected. Please upload a close-up photo of your scalp.');
           return;
         }
-        if (check.debug) showUploadError(`✓ ${check.debug}`, true);
-        else clearUploadError();
+        clearUploadError();
       } catch (err) {
-        showUploadError(`⚠️ Validation error: ${err.message}`, true);
-        // proceed anyway
+        clearUploadError(); // proceed on unexpected error
       }
 
       Crop.destroy();
