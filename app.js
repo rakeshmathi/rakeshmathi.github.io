@@ -959,12 +959,11 @@ const App = (() => {
     const res  = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const json = await res.json();
     if (!res.ok || json.error) {
-      console.warn('Gemini API error:', json.error || res.status);
-      return { ok: true }; // API error — allow through rather than blocking
+      return { ok: true, debug: `API error ${res.status}: ${json.error?.message || JSON.stringify(json.error)}` };
     }
     const answer = json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim().toLowerCase() || '';
-    if (!answer) return { ok: true }; // empty response — allow through
-    return answer.startsWith('yes') ? { ok: true } : { ok: false };
+    if (!answer) return { ok: true, debug: 'Empty answer from Gemini' };
+    return { ok: answer.startsWith('yes'), debug: `Gemini answered: "${answer}"` };
   }
   // ────────────────────────────────────────────────────────────────
 
@@ -988,14 +987,14 @@ const App = (() => {
       try {
         const check = await validateWithGemini(img);
         if (!check.ok) {
-          showUploadError('⚠️ No human head or scalp detected. Please upload a close-up photo of your scalp.');
+          showUploadError(`⚠️ No human head or scalp detected. [${check.debug || ''}]`);
           return;
         }
-        clearUploadError();
+        if (check.debug) showUploadError(`✓ ${check.debug}`, true);
+        else clearUploadError();
       } catch (err) {
-        // Network/API error — log and proceed rather than blocking the user
-        console.warn('Image validation failed, proceeding anyway:', err);
-        clearUploadError();
+        showUploadError(`⚠️ Validation error: ${err.message}`, true);
+        // proceed anyway
       }
 
       Crop.destroy();
