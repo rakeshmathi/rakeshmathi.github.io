@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emergency Planner</title>
+  <link rel="stylesheet" href="emergency.css" />
+</head>
+<body>
+  <div class="app-wrapper">
+
+    <header class="header">
+      <div class="header-inner">
+        <div class="logo" onclick="EP.goHome()" style="cursor:pointer">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <circle cx="16" cy="16" r="16" fill="#dc2626"/>
+            <path d="M16 6 L26 24 H6 Z" stroke="white" stroke-width="2" fill="none" stroke-linejoin="round"/>
+            <line x1="16" y1="13" x2="16" y2="18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="16" cy="21" r="1" fill="white"/>
+          </svg>
+          <span>Emergency<strong>Planner</strong></span>
+        </div>
+        <div id="header-actions" style="display:none">
+          <button class="btn btn-ghost btn-sm" onclick="EP.showPlans()">&#128196; My Plan</button>
+          <button class="btn btn-danger btn-sm" onclick="EP.startDrillPicker()">&#9654; Run Drill</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+
+      <!-- ── Intro ── -->
+      <section id="screen-intro" class="screen active">
+        <div class="card intro-card">
+          <div class="intro-hero">
+            <svg width="100" height="100" viewBox="0 0 100 100" fill="none">
+              <circle cx="50" cy="50" r="48" fill="#fef2f2" stroke="#fca5a5" stroke-width="2"/>
+              <path d="M50 18 L80 72 H20 Z" fill="#dc2626" opacity="0.15" stroke="#dc2626" stroke-width="3" stroke-linejoin="round"/>
+              <line x1="50" y1="38" x2="50" y2="57" stroke="#dc2626" stroke-width="4" stroke-linecap="round"/>
+              <circle cx="50" cy="65" r="3" fill="#dc2626"/>
+            </svg>
+          </div>
+          <h1 class="intro-title">Your Personal Emergency Plan</h1>
+          <p class="intro-subtitle">Answer a few quick questions about your home, lifestyle, and surroundings. We'll build a tailored emergency plan and let you run realistic timed drills.</p>
+          <div class="intro-features">
+            <div class="feature-item"><span class="feature-icon">&#10003;</span><span>Personalised to your home &amp; lifestyle</span></div>
+            <div class="feature-item"><span class="feature-icon">&#10003;</span><span>Covers the emergencies most likely for you</span></div>
+            <div class="feature-item"><span class="feature-icon">&#10003;</span><span>Timed drills with decision scoring</span></div>
+            <div class="feature-item"><span class="feature-icon">&#10003;</span><span>Saved locally — no account needed</span></div>
+          </div>
+          <button class="btn btn-danger btn-large" onclick="EP.startProfile()">Build My Emergency Plan &#8594;</button>
+          <p id="resume-hint" style="display:none;margin-top:12px">
+            <a href="#" onclick="EP.showPlans();return false;" class="link">Resume my existing plan &#8594;</a>
+          </p>
+          <p class="disclaimer">Not a substitute for official emergency services. Always call 911 in a real emergency.</p>
+        </div>
+      </section>
+
+      <!-- ── Profile Wizard ── -->
+      <section id="screen-profile" class="screen">
+        <div class="card profile-card">
+          <div class="progress-bar-wrap">
+            <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+            <span class="progress-label" id="progress-label">Step 1 of 5</span>
+          </div>
+          <h2 class="profile-question" id="profile-question"></h2>
+          <p class="profile-hint" id="profile-hint"></p>
+          <div class="cards-grid" id="cards-grid"></div>
+          <div class="profile-nav">
+            <button class="btn btn-ghost" id="btn-back" onclick="EP.profileBack()">&#8592; Back</button>
+            <button class="btn btn-danger" id="btn-next" onclick="EP.profileNext()">Next &#8594;</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Plan Overview ── -->
+      <section id="screen-plan" class="screen">
+        <div class="plan-container">
+          <div class="card plan-header-card">
+            <h2 class="plan-title">Your Emergency Plan</h2>
+            <p class="plan-subtitle" id="plan-subtitle"></p>
+            <div class="plan-actions">
+              <button class="btn btn-danger" onclick="EP.startDrillPicker()">&#9654; Run a Drill</button>
+              <button class="btn btn-outline" onclick="EP.printPlan()">&#128438; Print / Save PDF</button>
+              <button class="btn btn-ghost" onclick="EP.startProfile()">&#9998; Edit Profile</button>
+            </div>
+          </div>
+          <div id="scenarios-list"></div>
+          <div class="card supplies-card" id="supplies-card">
+            <h3>Emergency Supply Checklist</h3>
+            <div id="supplies-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Scenario Detail ── -->
+      <section id="screen-scenario" class="screen">
+        <div class="card scenario-card">
+          <button class="btn btn-ghost btn-sm back-btn" onclick="EP.showPlans()">&#8592; Back to Plan</button>
+          <div class="scenario-header" id="scenario-header"></div>
+          <div id="scenario-phases"></div>
+          <div class="scenario-footer">
+            <button class="btn btn-danger" id="btn-drill-this" onclick="EP.drillThis()">&#9654; Drill This Scenario</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Drill Picker ── -->
+      <section id="screen-drill-picker" class="screen">
+        <div class="card drill-picker-card">
+          <button class="btn btn-ghost btn-sm back-btn" onclick="EP.showPlans()">&#8592; Back</button>
+          <h2 class="drill-picker-title">Choose a Drill</h2>
+          <p class="drill-picker-sub">Select an emergency scenario to run a timed walkthrough.</p>
+          <div id="drill-picker-list"></div>
+        </div>
+      </section>
+
+      <!-- ── Drill Active ── -->
+      <section id="screen-drill" class="screen">
+        <div class="card drill-card">
+          <div class="drill-header">
+            <div class="drill-meta">
+              <span class="drill-scenario-name" id="drill-name"></span>
+              <span class="drill-step-counter" id="drill-step-counter"></span>
+            </div>
+            <div class="drill-timer" id="drill-timer">0:00</div>
+          </div>
+          <div class="drill-situation" id="drill-situation"></div>
+          <div class="drill-prompt" id="drill-prompt"></div>
+          <div class="drill-options" id="drill-options"></div>
+          <div class="drill-feedback" id="drill-feedback" style="display:none"></div>
+          <button class="btn btn-danger drill-continue" id="drill-continue" style="display:none" onclick="EP.drillContinue()">Continue &#8594;</button>
+        </div>
+      </section>
+
+      <!-- ── Drill Results ── -->
+      <section id="screen-drill-results" class="screen">
+        <div class="card drill-results-card">
+          <div class="drill-results-header" id="drill-results-header"></div>
+          <div class="drill-score-display">
+            <span class="drill-score-number" id="drill-score-number"></span>
+            <span class="drill-score-label">/ 100</span>
+          </div>
+          <p class="drill-score-summary" id="drill-score-summary"></p>
+          <div class="drill-breakdown" id="drill-breakdown"></div>
+          <div class="drill-results-actions">
+            <button class="btn btn-danger" onclick="EP.drillAgain()">&#9654; Drill Again</button>
+            <button class="btn btn-outline" onclick="EP.startDrillPicker()">Try Another Scenario</button>
+            <button class="btn btn-ghost" onclick="EP.showPlans()">Back to Plan</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+  <script src="emergency-app.js"></script>
+</body>
+</html>
