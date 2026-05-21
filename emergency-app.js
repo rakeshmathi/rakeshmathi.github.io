@@ -759,6 +759,7 @@ const EP = (() => {
     step.choices.forEach(choice => {
       const card = document.createElement('div');
       card.className = 'choice-card' + (sel.has(choice.id) ? ' selected' : '');
+      card.dataset.choiceId = choice.id;
       card.innerHTML = `<span class="card-icon">${choice.icon}</span><span class="card-label">${choice.label}</span><span class="card-desc">${choice.desc}</span>`;
       card.addEventListener('click', () => toggleChoice(step, choice.id, card));
       grid.appendChild(card);
@@ -772,6 +773,24 @@ const EP = (() => {
     if (!step.multi) {
       sel.clear();
       document.querySelectorAll('.choice-card').forEach(c => c.classList.remove('selected'));
+    } else {
+      // "none" options are exclusive — selecting none clears others and vice versa
+      const isNoneId = id === 'none' || id === 'none_dev';
+      const noneIds  = step.choices.filter(c => c.id === 'none' || c.id === 'none_dev').map(c => c.id);
+      if (isNoneId) {
+        // Selecting "none" clears all other selections
+        sel.clear();
+        document.querySelectorAll('#cards-grid .choice-card').forEach(c => c.classList.remove('selected'));
+      } else {
+        // Selecting a real option removes any "none" selection
+        noneIds.forEach(nid => {
+          if (sel.has(nid)) {
+            sel.delete(nid);
+            const noneCard = $('cards-grid').querySelector(`[data-choice-id="${nid}"]`);
+            if (noneCard) noneCard.classList.remove('selected');
+          }
+        });
+      }
     }
 
     if (sel.has(id)) {
@@ -849,8 +868,9 @@ const EP = (() => {
     const savedChecked = JSON.parse(localStorage.getItem('ep_supplies') || '{}');
     const supGrid = document.createElement('div');
     supGrid.className = 'supplies-list-grid';
-    supplies.forEach((item, idx) => {
-      const key  = `sup_${idx}`;
+    supplies.forEach((item) => {
+      // Stable key derived from item text so checked state survives profile edits
+      const key = 'sup_' + item.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 48);
       const done = savedChecked[key] || false;
       const div  = document.createElement('div');
       div.className = 'supply-item' + (done ? ' checked' : '');
@@ -871,15 +891,21 @@ const EP = (() => {
   }
 
   function showPlans() {
+    stopTimer();
     const p = loadSavedProfile();
     if (!p) { startProfile(); return; }
-    if (!_plan) { _plan = buildPlan(p); renderPlan(p); return; }
+    if (!_plan || $('scenarios-list').children.length === 0) {
+      _plan = buildPlan(p);
+      renderPlan(p);
+      return;
+    }
     showScreen('screen-plan');
     $('header-actions').style.display = 'flex';
   }
 
   // ── Scenario Detail ──────────────────────────────────────────────
   function openScenario(id) {
+    stopTimer();
     const s = _plan.find(x => x.id === id);
     if (!s) return;
     _currentScenario = s;
@@ -912,18 +938,17 @@ const EP = (() => {
         actionsDiv.appendChild(a);
       });
       block.appendChild(actionsDiv);
-
-      // Household notes
-      ['petNote','kidsNote','elderlyNote','medicalNote','aptNote','ruralNote'].forEach(key => {
-        if (s[key]) {
-          const note = document.createElement('div');
-          note.style.cssText = 'margin-top:8px;padding:10px 14px;background:#fff7ed;border:1px solid #fdba74;border-radius:8px;font-size:0.85rem;color:#92400e;';
-          note.textContent = '💡 ' + s[key];
-          block.appendChild(note);
-        }
-      });
-
       container.appendChild(block);
+    });
+
+    // Household-specific notes rendered once after all phases
+    ['petNote','kidsNote','elderlyNote','medicalNote','aptNote','ruralNote'].forEach(key => {
+      if (s[key]) {
+        const note = document.createElement('div');
+        note.style.cssText = 'margin-top:8px;padding:10px 14px;background:#fff7ed;border:1px solid #fdba74;border-radius:8px;font-size:0.85rem;color:#92400e;';
+        note.textContent = '💡 ' + s[key];
+        container.appendChild(note);
+      }
     });
 
     showScreen('screen-scenario');
@@ -931,7 +956,8 @@ const EP = (() => {
 
   // ── Drill Picker ─────────────────────────────────────────────────
   function startDrillPicker() {
-    if (!_plan) { const p = loadSavedProfile(); if (p) { _plan = buildPlan(p); } else { startProfile(); return; } }
+    stopTimer();
+    if (!_plan) { const p = loadSavedProfile(); if (p) { _plan = buildPlan(p); renderPlan(p); } else { startProfile(); return; } }
     const list = $('drill-picker-list');
     list.innerHTML = '';
     _plan.forEach(s => {
