@@ -1132,5 +1132,5 @@ const EP = (() => {
 
   function printPlan() { window.print(); }
 
-  return { goHome, startProfile, showPlans, startDrillPicker, drillThis, drillContinue, drillAgain, printPlan };
+  return { goHome, startProfile, profileNext, profileBack, showPlans, startDrillPicker, drillThis, drillContinue, drillAgain, printPlan };
 })();
